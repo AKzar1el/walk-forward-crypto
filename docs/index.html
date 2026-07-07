@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Walk-Forward Crypto — Adaptive Out-of-Sample Trading System</title>
+<meta name="description" content="A walk-forward optimization framework for crypto markets. Signals validated out-of-sample, execution simulated under realistic frictions.">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700;800;900&display=swap">
+<style>
+:root {
+  --bg: #0a0a0a;
+  --bg-soft: #111111;
+  --bg-card: #0d0d0d;
+  --text: #ffffff;
+  --text-soft: #dadada;
+  --text-dim: #8a8a8a;
+  --text-mute: #5a5a5a;
+  --accent: rgba(200,170,130,1);
+  --accent-soft: rgba(200,170,130,0.25);
+  --accent-dim: rgba(200,170,130,0.08);
+  --line: rgba(255,255,255,0.10);
+  --line-soft: rgba(255,255,255,0.06);
+  --ease-quiet: cubic-bezier(.22, 1, .36, 1);
+  --ease-precise: cubic-bezier(.4, 0, .2, 1);
+  --ease-emphasis: cubic-bezier(.16, 1, .3, 1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 400;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+::selection { background: var(--accent); color: var(--bg); }
+
+/* Background glyph rain */
+canvas.rain {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.13;
+}
+
+/* Navigation */
+nav.top {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 2.5rem;
+  background: rgba(10,10,10,0.72);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+nav .brand {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+nav .brand .brand-logo {
+  height: 20px;
+  width: 20px;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 0 10px var(--accent-soft);
+  transition: transform 400ms var(--ease-quiet);
+}
+nav .brand:hover .brand-logo {
+  transform: scale(1.08);
+}
+
+nav .links {
+  display: flex;
+  gap: 2.5rem;
+  list-style: none;
+}
+
+nav .links a {
+  color: var(--text-dim);
+  text-decoration: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  transition: color 400ms var(--ease-quiet);
+  position: relative;
+  padding: 0.3rem 0;
+}
+
+nav .links a:hover { color: var(--text); }
+
+nav .links a::after {
+  content: '';
+  position: absolute;
+  bottom: -2px; left: 0;
+  width: 0; height: 1px;
+  background: var(--accent);
+  transition: width 400ms var(--ease-quiet);
+}
+
+nav .links a:hover::after { width: 100%; }
+
+nav .cta {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+nav .cta a.icon {
+  width: 34px; height: 34px;
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  color: var(--text-dim);
+  transition: all 400ms var(--ease-quiet);
+  text-decoration: none;
+}
+
+nav .cta a.icon:hover {
+  color: var(--accent);
+  border-color: var(--accent-soft);
+  background: var(--accent-dim);
+}
+
+nav .cta a.button {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--bg);
+  background: var(--accent);
+  padding: 0.65rem 1.25rem;
+  text-decoration: none;
+  border-radius: 2px;
+  transition: all 400ms var(--ease-quiet);
+  font-weight: 700;
+}
+
+nav .cta a.button:hover {
+  background: var(--text);
+  transform: translateY(-1px);
+}
+
+/* Section base */
+section {
+  position: relative;
+  z-index: 1;
+  padding: 8rem 2.5rem;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.container-narrow {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.section-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.section-label .num {
+  color: var(--text-dim);
+}
+
+.section-label .line {
+  flex: 1;
+  height: 1px;
+  background: var(--line-soft);
+  max-width: 60px;
+}
+
+.section-headline {
+  font-family: 'Inter', sans-serif;
+  font-weight: 800;
+  font-size: clamp(2rem, 4.8vw, 3.75rem);
+  line-height: 1.05;
+  letter-spacing: -0.028em;
+  margin-bottom: 1.75rem;
+  color: var(--text);
+}
+
+.section-sub {
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: var(--text-soft);
+  max-width: 640px;
+  margin-bottom: 4rem;
+  font-weight: 400;
+}
+
+/* Hero */
+section.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 9rem 2.5rem 4rem;
+  z-index: 1;
+  overflow: hidden;
+}
+
+section.hero::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 110%;
+  height: 110%;
+  background-image: url('assets/hero_background.png');
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: top left;
+  opacity: 0.08;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.hero .container {
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.hero .eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 2.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.hero .eyebrow .line {
+  width: 50px;
+  height: 1px;
+  background: var(--accent-soft);
+}
+
+.hero h1 {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: clamp(2.5rem, 8.5vw, 7.5rem);
+  line-height: 0.95;
+  letter-spacing: -0.045em;
+  margin-bottom: 2.5rem;
+  color: var(--text);
+  min-height: 0.95em;
+}
+
+.hero h1.is-decoding {
+  text-shadow: 0 0 18px rgba(200,170,130,0.45);
+}
+
+.hero .subtitle {
+  font-size: 1.15rem;
+  line-height: 1.6;
+  color: var(--text-soft);
+  max-width: 680px;
+  margin-bottom: 3.5rem;
+  font-weight: 400;
+}
+
+.hero .actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 6rem;
+}
+
+.hero .actions a.primary {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--bg);
+  background: var(--accent);
+  padding: 1.1rem 2rem;
+  text-decoration: none;
+  border-radius: 2px;
+  transition: all 400ms var(--ease-quiet);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.hero .actions a.primary:hover {
+  background: var(--text);
+  transform: translateY(-2px);
+}
+
+.hero .actions a.primary .arrow {
+  transition: transform 400ms var(--ease-quiet);
+  display: inline-block;
+}
+
+.hero .actions a.primary:hover .arrow {
+  transform: translateX(4px);
+}
+
+.hero .actions a.secondary {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text);
+  padding: 1.1rem 2rem;
+  text-decoration: none;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  transition: all 400ms var(--ease-quiet);
+  font-weight: 500;
+}
+
+.hero .actions a.secondary:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Hero stats strip */
+.hero .stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--line);
+  padding-top: 2.5rem;
+}
+
+.hero .stats .stat {
+  position: relative;
+  padding-right: 1.5rem;
+}
+
+.hero .stats .stat:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 1px; height: 100%;
+  background: var(--line-soft);
+}
+
+.hero .stats .stat .label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 0.85rem;
+}
+
+.hero .stats .stat .value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.hero .stats .stat .value .unit {
+  font-size: 0.875rem;
+  color: var(--text-dim);
+  font-weight: 400;
+  margin-left: 0.25rem;
+}
+
+/* Problem section */
+.problem .compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--line-soft);
+  border: 1px solid var(--line-soft);
+}
+
+.problem .card {
+  background: var(--bg);
+  padding: 3rem 2.5rem;
+  position: relative;
+}
+
+.problem .card .badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.22em;
+  color: var(--text-dim);
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--line);
+  display: inline-block;
+  margin-bottom: 1.75rem;
+  border-radius: 2px;
+}
+
+.problem .card .badge.accent {
+  color: var(--accent);
+  border-color: var(--accent-soft);
+  background: var(--accent-dim);
+}
+
+.problem .card h3 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 1.4rem;
+  margin-bottom: 2rem;
+  color: var(--text);
+  letter-spacing: -0.015em;
+}
+
+.problem .card ul {
+  list-style: none;
+  margin-bottom: 2rem;
+}
+
+.problem .card ul li {
+  position: relative;
+  padding-left: 1.75rem;
+  margin-bottom: 0.9rem;
+  color: var(--text-soft);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.problem .card.bad ul li::before {
+  content: '✕';
+  position: absolute;
+  left: 0;
+  color: var(--text-mute);
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+}
+
+.problem .card.good ul li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+}
+
+.problem .card .result {
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line-soft);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.875rem;
+  color: var(--text-soft);
+  letter-spacing: 0.02em;
+}
+
+.problem .card.bad .result { color: var(--text-dim); }
+.problem .card.good .result { color: var(--text); }
+
+/* Methodology - sticky two column */
+.methodology .sticky-pair {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 6rem;
+  align-items: start;
+}
+
+.methodology .left {
+  position: sticky;
+  top: 8rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.methodology .right {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--line-soft);
+  border: 1px solid var(--line-soft);
+}
+
+.methodology .step {
+  background: var(--bg);
+  padding: 3rem 2.25rem;
+  position: relative;
+  transition: background 400ms var(--ease-quiet);
+}
+
+.methodology .step:hover {
+  background: var(--bg-soft);
+}
+
+.methodology .step .index {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  color: var(--accent);
+  margin-bottom: 1rem;
+}
+
+.methodology .step h3 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 1.45rem;
+  letter-spacing: -0.015em;
+  margin-bottom: 1rem;
+  color: var(--text);
+}
+
+.methodology .step p {
+  color: var(--text-soft);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+}
+
+.methodology .step .diagram {
+  margin-top: 1.5rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+  padding: 1rem 1.25rem;
+  background: rgba(0,0,0,0.45);
+  border: 1px solid var(--line-soft);
+  border-radius: 2px;
+  white-space: pre;
+  line-height: 1.55;
+  overflow-x: auto;
+}
+
+/* Strategy rows */
+.strategy .rows {
+  border-top: 1px solid var(--line);
+}
+
+.strategy .row {
+  display: grid;
+  grid-template-columns: 70px 1fr 1.6fr 130px;
+  gap: 2.5rem;
+  padding: 3rem 1.5rem;
+  border-bottom: 1px solid var(--line);
+  position: relative;
+  align-items: start;
+  transition: background 600ms var(--ease-quiet);
+}
+
+.strategy .row::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0;
+  width: 2px; height: 0;
+  background: var(--accent);
+  transition: height 600ms var(--ease-quiet);
+}
+
+.strategy .row:hover::before { height: 100%; }
+
+.strategy .row .num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  color: var(--text-dim);
+  transition: color 600ms var(--ease-quiet);
+  padding-top: 0.4rem;
+}
+
+.strategy .row:hover .num { color: var(--accent); }
+
+.strategy .row h3 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 1.45rem;
+  letter-spacing: -0.015em;
+  color: var(--text);
+  transition: color 600ms var(--ease-quiet);
+}
+
+.strategy .row:hover h3 { color: var(--accent); }
+
+.strategy .row p {
+  color: var(--text-dim);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  transition: color 600ms var(--ease-quiet);
+}
+
+.strategy .row:hover p { color: var(--text-soft); }
+
+.strategy .row .tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+  text-align: right;
+  text-transform: uppercase;
+  padding-top: 0.4rem;
+}
+
+/* Performance section */
+.performance {
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.performance .grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--line-soft);
+  margin-bottom: 4rem;
+  border: 1px solid var(--line-soft);
+}
+
+.performance .metric {
+  background: var(--bg);
+  padding: 3rem 2.25rem;
+  position: relative;
+  transition: background 400ms var(--ease-quiet);
+}
+
+.performance .metric:hover { background: var(--bg-soft); }
+
+.performance .metric .label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 1.75rem;
+}
+
+.performance .metric .value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.025em;
+  line-height: 1;
+}
+
+.performance .metric .value .unit {
+  font-size: 1rem;
+  color: var(--accent);
+  font-weight: 400;
+  margin-left: 0.35rem;
+}
+
+.performance .metric .note {
+  margin-top: 1.25rem;
+  font-size: 0.8125rem;
+  color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.04em;
+}
+
+.performance .cta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2.5rem 0 0;
+  border-top: 1px solid var(--line-soft);
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.performance .cta-row .copy {
+  max-width: 560px;
+}
+
+.performance .cta-row .copy h4 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.performance .cta-row .copy p {
+  color: var(--text-dim);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.performance .cta-row a.button {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--bg);
+  background: var(--accent);
+  padding: 1.1rem 2rem;
+  text-decoration: none;
+  border-radius: 2px;
+  transition: all 400ms var(--ease-quiet);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  white-space: nowrap;
+}
+
+.performance .cta-row a.button:hover {
+  background: var(--text);
+  transform: translateY(-2px);
+}
+
+/* Engineering / pipeline */
+.tech .pipeline {
+  margin-top: 1rem;
+  margin-bottom: 4rem;
+  background: rgba(0,0,0,0.45);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.tech .pipeline-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.1rem;
+  background: rgba(255,255,255,0.025);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.tech .pipeline-head .dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+}
+
+.tech .pipeline-head .dot.red { background: rgba(255,90,90,0.55); }
+.tech .pipeline-head .dot.yellow { background: rgba(255,200,90,0.55); }
+.tech .pipeline-head .dot.green { background: rgba(90,200,120,0.55); }
+
+.tech .pipeline-head .path {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  margin-left: 1rem;
+  letter-spacing: 0.04em;
+}
+
+.tech .pipeline pre {
+  padding: 1.5rem 1.75rem;
+  overflow-x: auto;
+  margin: 0;
+}
+
+.tech .pipeline code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  line-height: 1.75;
+  color: var(--text-soft);
+  white-space: pre;
+}
+
+.tech .pipeline .comment { color: var(--text-mute); }
+.tech .pipeline .cmd { color: var(--accent); }
+.tech .pipeline .str { color: #d4b896; }
+.tech .pipeline .num { color: #b8c4d4; }
+.tech .pipeline .flag { color: #c8b89a; }
+
+.tech .grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--line-soft);
+  border: 1px solid var(--line-soft);
+}
+
+.tech .cell {
+  background: var(--bg);
+  padding: 2rem 1.5rem;
+  transition: background 400ms var(--ease-quiet);
+  position: relative;
+}
+
+.tech .cell:hover { background: var(--bg-soft); }
+
+.tech .cell::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 0; height: 1px;
+  background: var(--accent);
+  transition: width 600ms var(--ease-quiet);
+}
+
+.tech .cell:hover::before { width: 100%; }
+
+.tech .cell .name {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 0.45rem;
+  letter-spacing: -0.005em;
+}
+
+.tech .cell .role {
+  font-size: 0.8125rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+/* Risk framework */
+.risk .grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3.5rem 4rem;
+}
+
+.risk .item {
+  border-top: 1px solid var(--line);
+  padding-top: 2rem;
+  position: relative;
+}
+
+.risk .item::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: 0;
+  width: 32px; height: 1px;
+  background: var(--accent);
+}
+
+.risk .item .label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 1rem;
+}
+
+.risk .item h4 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 1.2rem;
+  margin-bottom: 0.85rem;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+}
+
+.risk .item p {
+  color: var(--text-soft);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+}
+
+/* Footer */
+footer {
+  padding: 6rem 2.5rem 2.5rem;
+  border-top: 1px solid var(--line);
+  position: relative;
+  z-index: 1;
+  background: var(--bg);
+}
+
+footer .container {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 4rem;
+  margin-bottom: 4rem;
+}
+
+footer .brand-block .mark {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--text);
+}
+
+footer .brand-block .mark .dot {
+  width: 8px; height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 12px var(--accent-soft);
+}
+
+footer .brand-block p {
+  color: var(--text-dim);
+  font-size: 0.875rem;
+  line-height: 1.65;
+  max-width: 360px;
+}
+
+footer .col h5 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 1.5rem;
+}
+
+footer .col ul {
+  list-style: none;
+}
+
+footer .col ul li {
+  margin-bottom: 0.75rem;
+}
+
+footer .col ul li a {
+  color: var(--text-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 400ms var(--ease-quiet);
+}
+
+footer .col ul li a:hover {
+  color: var(--accent);
+}
+
+footer .bottom {
+  border-top: 1px solid var(--line-soft);
+  padding-top: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+footer .bottom .disclaimer {
+  color: var(--text-mute);
+}
+
+/* Fade-up animation */
+.fade-up {
+  opacity: 0;
+  transform: translateY(36px);
+  transition: opacity 1100ms var(--ease-quiet), transform 1100ms var(--ease-quiet);
+  will-change: transform, opacity;
+}
+
+.fade-up.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+.fade-up.delay-1 { transition-delay: 100ms; }
+.fade-up.delay-2 { transition-delay: 200ms; }
+.fade-up.delay-3 { transition-delay: 300ms; }
+.fade-up.delay-4 { transition-delay: 400ms; }
+
+/* Responsive */
+@media (max-width: 1024px) {
+  nav .links { display: none; }
+  nav.top { padding: 1rem 1.5rem; }
+
+  .hero .stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem 0;
+  }
+  .hero .stats .stat:not(:last-child)::after { display: none; }
+  .hero .stats .stat:nth-child(odd)::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 1px; height: 100%;
+    background: var(--line-soft);
+  }
+
+  .methodology .sticky-pair {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+  .methodology .left { position: static; }
+
+  .strategy .row {
+    grid-template-columns: 50px 1fr;
+    gap: 1.25rem;
+    padding: 2rem 1rem;
+  }
+  .strategy .row p, .strategy .row .tag {
+    grid-column: 2;
+  }
+  .strategy .row .tag { text-align: left; padding-top: 0.5rem; }
+
+  .performance .grid { grid-template-columns: repeat(2, 1fr); }
+
+  .tech .grid { grid-template-columns: repeat(2, 1fr); }
+
+  .risk .grid { grid-template-columns: 1fr; gap: 2.5rem; }
+
+  .problem .compare { grid-template-columns: 1fr; }
+
+  footer .container { grid-template-columns: 1fr 1fr; gap: 2.5rem; }
+}
+
+@media (max-width: 640px) {
+  section, section.hero { padding: 5rem 1.5rem; }
+  nav.top { padding: 0.9rem 1.25rem; }
+  nav .cta a.button { padding: 0.55rem 0.95rem; font-size: 0.65rem; }
+  nav .cta a.icon { width: 30px; height: 30px; }
+
+  .hero .actions { flex-direction: column; align-items: stretch; }
+  .hero .actions a { justify-content: center; }
+
+  .hero .stats { grid-template-columns: 1fr 1fr; gap: 2rem 1.5rem; }
+  .hero .stats .stat::after { display: none !important; }
+
+  .performance .grid { grid-template-columns: 1fr; }
+  .tech .grid { grid-template-columns: 1fr; }
+  .problem .card { padding: 2rem 1.5rem; }
+  .methodology .step { padding: 2rem 1.5rem; }
+
+  footer .container { grid-template-columns: 1fr; gap: 2rem; }
+  footer .bottom { flex-direction: column; align-items: flex-start; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  canvas.rain { display: none; }
+  .fade-up { opacity: 1; transform: none; }
+}
+</style>
+</head>
+<body>
+
+<canvas class="rain"></canvas>
+
+<nav class="top">
+  <a href="./index.html" class="brand">
+    <img src="assets/brand_logo.png" alt="Walk-Forward Crypto Logo" class="brand-logo">
+    <span>WF·CRYPTO</span>
+  </a>
+  <ul class="links">
+    <li><a href="#problem">Problem</a></li>
+    <li><a href="#methodology">Methodology</a></li>
+    <li><a href="#strategy">Strategy</a></li>
+    <li><a href="#performance">Performance</a></li>
+    <li><a href="#risk">Risk</a></li>
+  </ul>
+  <div class="cta">
+    <a href="https://github.com/AKzar1el/walk-forward-crypto" target="_blank" rel="noopener" class="icon" aria-label="GitHub repository">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+    </a>
+    <a href="interactive/dashboard.html" class="button">Open dashboard →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <div class="eyebrow fade-up">
+      <span class="line"></span>
+      <span>Walk-Forward Optimization · Crypto Markets · v2.4</span>
+    </div>
+    <h1 id="hero-title">WALK-FORWARD EDGE</h1>
+    <p class="subtitle fade-up delay-1">
+      A research framework that fits strategies on rolling in-sample windows
+      and validates every signal against out-of-sample data it has never seen.
+      No curve-fit. No look-ahead. No narrative drift — only edges that survive
+      the next candle.
+    </p>
+    <div class="actions fade-up delay-2">
+      <a href="interactive/equity.html" class="primary">
+        <span>Open interactive chart</span>
+        <span class="arrow">→</span>
+      </a>
+      <a href="#problem" class="secondary">Read methodology</a>
+    </div>
+    <div class="stats fade-up delay-3">
+      <div class="stat">
+        <div class="label">OOS Sharpe</div>
+        <div class="value" data-counter="1.20" data-decimals="2">1.20</div>
+      </div>
+      <div class="stat">
+        <div class="label">Max Drawdown</div>
+        <div class="value"><span data-counter="-28.0" data-decimals="1">-28.0</span><span class="unit">%</span></div>
+      </div>
+      <div class="stat">
+        <div class="label">CAGR (OOS)</div>
+        <div class="value"><span data-counter="44.2" data-decimals="1">44.2</span><span class="unit">%</span></div>
+      </div>
+      <div class="stat">
+        <div class="label">Cumulative Return</div>
+        <div class="value" data-counter="144.5" data-decimals="1">144.5</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROBLEM -->
+<section class="problem" id="problem">
+  <div class="container">
+    <div class="section-label fade-up">
+      <span class="num">00 /</span>
+      <span>The Problem</span>
+      <span class="line"></span>
+    </div>
+    <h2 class="section-headline fade-up delay-1">A backtest is a story.<br>A walk-forward is a stress test.</h2>
+    <p class="section-sub fade-up delay-2">
+      Most crypto backtests are theatre: parameters tuned on the same data they
+      are then evaluated on, look-ahead leakage baked into features, slippage
+      assumed away. The walk-forward protocol exists to make the backtest
+      honest.
+    </p>
+    <div class="compare">
+      <div class="card bad fade-up">
+        <div class="badge">NAIVE BACKTEST</div>
+        <h3>Fit on full history, evaluate on full history</h3>
+        <ul>
+          <li>Parameters tuned on the entire dataset</li>
+          <li>Evaluator sees the same data as the fitter</li>
+          <li>Look-ahead leakage in feature computation</li>
+          <li>Slippage, fees, funding routinely ignored</li>
+          <li>Reported Sharpe is in-sample Sharpe</li>
+        </ul>
+        <div class="result">Sharpe: 3.4 — and almost certainly a lie.</div>
+      </div>
+      <div class="card good fade-up delay-1">
+        <div class="badge accent">WALK-FORWARD</div>
+        <h3>Fit forward, evaluate forward</h3>
+        <ul>
+          <li>Parameters tuned only on the training window</li>
+          <li>Evaluator sees data the fitter never touched</li>
+          <li>Look-ahead explicitly forbidden in feature spec</li>
+          <li>Slippage, fees, funding accrued per bar</li>
+          <li>Reported Sharpe is out-of-sample Sharpe</li>
+        </ul>
+        <div class="result">Sharpe: 1.20 — and defensible.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- METHODOLOGY -->
+<section class="methodology" id="methodology">
+  <div class="container">
+    <div class="sticky-pair">
+      <div class="left">
+        <div class="section-label fade-up">
+          <span class="num">01 /</span>
+          <span>Methodology</span>
+          <span class="line"></span>
+        </div>
+        <h2 class="section-headline fade-up delay-1">Train, test,<br>roll, repeat.</h2>
+        <p class="section-sub fade-up delay-2">
+          Walk-forward optimization splits history into overlapping windows.
+          Each strategy is fit on a training window, then evaluated on the
+          forward out-of-sample window. The anchor advances, the loop repeats,
+          and OOS returns aggregate into the only equity curve that matters —
+          the one built from trades the model never saw during fitting.
+        </p>
+      </div>
+      <div class="right">
+        <div class="step fade-up">
+          <div class="index">STEP 01 — TRAIN</div>
+          <h3>Fit on the in-sample window</h3>
+          <p>
+            Parameters are calibrated across N days of historical data using
+            bounded grid search. The optimizer maximises a deflated Sharpe
+            objective that penalises parameter fragility and over-fitted
+            complexity.
+          </p>
+<div class="diagram">┌──────────────────┐
+│  TRAIN (N days)  │  fit params
+└──────────────────┘</div>
+        </div>
+        <div class="step fade-up">
+          <div class="index">STEP 02 — FORWARD TEST</div>
+          <h3>Evaluate on unseen data</h3>
+          <p>
+            Fitted parameters are frozen and applied to the next M days of
+            market data — untouched by the optimizer. Every fill, slip, and
+            funding accrual is recorded against this out-of-sample slice.
+          </p>
+<div class="diagram">┌──────────────────┬────────────┐
+│  TRAIN (N days)  │ TEST (M d) │
+└──────────────────┴────────────┘
+                   ▲ OOS slice</div>
+        </div>
+        <div class="step fade-up">
+          <div class="index">STEP 03 — ROLL ANCHOR</div>
+          <h3>Advance the window, refit</h3>
+          <p>
+            The anchor steps forward by M days. The training window shifts
+            with it, parameters are re-calibrated on the new in-sample region,
+            and the next forward test begins. No information ever leaks
+            backwards.
+          </p>
+<div class="diagram">┌──────────────────┬────────────┐
+│  TRAIN (N days)  │ TEST (M d) │
+└──────────────────┴────────────┘
+       ↓ roll
+   ┌──────────────────┬────────────┐
+   │  TRAIN (N days)  │ TEST (M d) │
+   └──────────────────┴────────────┘</div>
+        </div>
+        <div class="step fade-up">
+          <div class="index">STEP 04 — AGGREGATE</div>
+          <h3>Stitch the OOS equity curve</h3>
+          <p>
+            The contiguous sequence of forward-test returns is concatenated
+            into the live equity curve. This is the only performance record
+            reported. In-sample metrics are kept for diagnostic purposes —
+            never for presentation.
+          </p>
+<div class="diagram">[OOS₁][OOS₂][OOS₃][OOS₄] → EQUITY CURVE</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STRATEGY -->
+<section class="strategy" id="strategy">
+  <div class="container">
+    <div class="section-label fade-up">
+      <span class="num">02 /</span>
+      <span>Strategy Stack</span>
+      <span class="line"></span>
+    </div>
+    <h2 class="section-headline fade-up delay-1">Four layers, one signal path.</h2>
+    <p class="section-sub fade-up delay-2">
+      Every position passes through signal generation, risk overlay, execution
+      simulation, and validation. No layer trusts the layer before it; each
+      one re-checks the assumptions it needs to operate.
+    </p>
+    <div class="rows">
+      <div class="row fade-up">
+        <div class="num">01</div>
+        <h3>Adaptive Signal Selection</h3>
+        <p>
+          Trades the equal-weight average of the top 3 configurations from a fixed zoo of 24 configs per coin (trend crosses, breakouts, mean-reversion, and cash). Configurations are ranked by Sharpe over a trailing 30-day window. If nothing scores positive, the book sits in cash.
+        </p>
+        <div class="tag">24-config zoo</div>
+      </div>
+      <div class="row fade-up">
+        <div class="num">02</div>
+        <h3>Execution & Sizing</h3>
+        <p>
+          Enforces a 50% annualized volatility target with a 1.5x cap for position sizing. Incorporates realistic frictions: 0.15% transaction costs per side on every position change, and real Binance funding charged.
+        </p>
+        <div class="tag">50% vol target (1.5x cap)</div>
+      </div>
+      <div class="row fade-up">
+        <div class="num">03</div>
+        <h3>Walk-Forward Protocol</h3>
+        <p>
+          Utilizes 4h bars with a weekly refit every Monday 00:00 UTC. The trailing window is 30 days for scoring, meaning the parameters update dynamically without look-ahead or predictive modeling. It adapts to the market instead of predicting it.
+        </p>
+        <div class="tag">Weekly Monday refit</div>
+      </div>
+      <div class="row fade-up">
+        <div class="num">04</div>
+        <h3>Two-Asset Universe</h3>
+        <p>
+          Trades BTC and ETH only, 50/50 split, each asset managed in its own independent book. Secondary assets and complex features (e.g. sentiment) were explicitly rejected during research.
+        </p>
+        <div class="tag">BTC & ETH only</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PERFORMANCE -->
+<section class="performance" id="performance">
+  <div class="container">
+    <div class="section-label fade-up">
+      <span class="num">03 /</span>
+      <span>Out-of-Sample Performance</span>
+      <span class="line"></span>
+    </div>
+    <h2 class="section-headline fade-up delay-1">Numbers the model never saw.</h2>
+    <p class="section-sub fade-up delay-2">
+      Every metric below is computed on the contiguous out-of-sample equity
+      curve. In-sample numbers are kept in the diagnostic logs — never on this
+      page. Open the interactive dashboard for the full equity curve, drawdown
+      profile, and per-asset attribution.
+    </p>
+    <div class="grid">
+      <div class="metric fade-up">
+        <div class="label">Sharpe Ratio</div>
+        <div class="value" data-counter="1.20" data-decimals="2">1.20</div>
+        <div class="note">OOS · 1.20 +/- 0.64 SE</div>
+      </div>
+      <div class="metric fade-up delay-1">
+        <div class="label">Max Drawdown</div>
+        <div class="value"><span data-counter="-28.0" data-decimals="1">-28.0</span><span class="unit">%</span></div>
+        <div class="note">Peak-to-trough · OOS</div>
+      </div>
+      <div class="metric fade-up delay-2">
+        <div class="label">CAGR</div>
+        <div class="value"><span data-counter="44.2" data-decimals="1">44.2</span><span class="unit">%</span></div>
+        <div class="note">Compound annual · OOS</div>
+      </div>
+      <div class="metric fade-up">
+        <div class="label">Full Period Return</div>
+        <div class="value"><span data-counter="144.5" data-decimals="1">144.5</span><span class="unit">%</span></div>
+        <div class="note">OOS · 2024-01-01 to 2026-06-10</div>
+      </div>
+      <div class="metric fade-up delay-1">
+        <div class="label">Hold BTC Return</div>
+        <div class="value"><span data-counter="46.0" data-decimals="1">46.0</span><span class="unit">%</span></div>
+        <div class="note">Continuous buy & hold</div>
+      </div>
+      <div class="metric fade-up delay-2">
+        <div class="label">Hold ETH Return</div>
+        <div class="value"><span data-counter="-27.8" data-decimals="1">-27.8</span><span class="unit">%</span></div>
+        <div class="note">Continuous buy & hold</div>
+      </div>
+    </div>
+    <div class="cta-row fade-up">
+      <div class="copy">
+        <h4>Full equity curve, drawdown, and per-asset attribution</h4>
+        <p>The interactive dashboard exposes the full OOS equity curve, rolling drawdown, monthly returns heatmap, and per-asset contribution.</p>
+      </div>
+      <a href="interactive/dashboard.html" class="button">
+        <span>Open dashboard</span>
+        <span>→</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ENGINEERING -->
+<section class="tech">
+  <div class="container">
+    <div class="section-label fade-up">
+      <span class="num">04 /</span>
+      <span>Engineering</span>
+      <span class="line"></span>
+    </div>
+    <h2 class="section-headline fade-up delay-1">Reproducible from<br>a single command.</h2>
+    <div class="pipeline fade-up">
+      <div class="pipeline-head">
+        <span class="dot red"></span>
+        <span class="dot yellow"></span>
+        <span class="dot green"></span>
+        <span class="path">~/walk-forward-crypto</span>
+      </div>
+<pre><code><span class="comment"># Fetch data, fit, walk-forward, render</span>
+python -m wf.main \
+    <span class="flag">--universe</span>      <span class="str">"BTC,ETH"</span> \
+    <span class="flag">--train-window</span>  <span class="num">30d</span> \
+    <span class="flag">--test-window</span>   <span class="num">7d</span> \
+    <span class="flag">--report</span>        <span class="str">"./docs/interactive/dashboard.html"</span>
+
+<span class="comment"># → Walk-forward weekly refit completed</span>
+<span class="comment"># → Full period: Sharpe 1.20 +/- 0.64 · MaxDD -28.0% · CAGR +44.2%/yr</span>
+<span class="comment"># → Dashboard written to docs/interactive/dashboard.html</span></code></pre>
+    </div>
+
+    <div class="grid">
+      <div class="cell fade-up">
+        <div class="name">Python 3.11</div>
+        <div class="role">Core runtime, typed end-to-end</div>
+      </div>
+      <div class="cell fade-up delay-1">
+        <div class="name">pandas · NumPy</div>
+        <div class="role">Vectorised signal + return math</div>
+      </div>
+      <div class="cell fade-up delay-2">
+        <div class="name">ccxt</div>
+        <div class="role">Exchange connectivity, OHLCV sync</div>
+      </div>
+      </div>
+      
+      <div class="text-block">
+        <h2 class="fade-up">Production CLI Execution</h2>
+        <p class="fade-up delay-1">
+          The walk-forward framework is engineered to run in headless production environments. It retrieves raw tick bars, aggregates them into 4h intervals, and scores configuration weights using a rolling window of recent market behavior.
+        </p>
+        <p class="fade-up delay-2">
+          Every Monday, the ensemble automatically refits, selects the top 3 best-performing configurations, and updates active position execution parameters.
+        </p>
+        <div class="tech-stack fade-up delay-3">
+          <div class="stack-title">Dependencies</div>
+          <div class="chips">
+            <span class="chip">python >= 3.10</span>
+            <span class="chip">pandas >= 2.0</span>
+            <span class="chip">numpy >= 1.24</span>
+            <span class="chip">plotly >= 5.15</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RISK & REASONING -->
+<section class="risk-reasoning" id="risk">
+  <div class="container">
+    <div class="section-label fade-up">
+      <span class="num">05 /</span>
+      <span>Risk Framework</span>
+      <span class="line"></span>
+    </div>
+    
+    <div class="risk-intro fade-up">
+      <h2>Friction & Execution Modeling</h2>
+      <p>
+        Unlike backtests that ignore execution realities, the walk-forward validation framework enforces strict penalties. Every parameter combination is evaluated under realistic transaction friction, execution slippage, and funding cost dynamics.
+      </p>
+    </div>
+    
+    <div class="grid">
+      <div class="item fade-up">
+        <div class="label">01 — Volatility Target</div>
+        <h4>Target 50% annualized volatility with a 1.5x cap</h4>
+        <p>Position size dynamically targets 50% annualized volatility, capped at 1.5x representing modest simulated leverage to scale exposure safely.</p>
+      </div>
+      <div class="item fade-up delay-1">
+        <div class="label">02 — No Drawdown Brakes</div>
+        <h4>Drawdown brakes were explicitly rejected</h4>
+        <p>Research showed drawdown brakes destroy returns: with a kill switch, 2025 returned -12.6% vs +41.0% without. Survival relies on config scoring instead.</p>
+      </div>
+      <div class="item fade-up">
+        <div class="label">03 — No Market Classifiers</div>
+        <h4>Direct configuration weighting</h4>
+        <p>The system does not predict market states using classifiers. It dynamically adapts by scoring a zoo of 24 configurations over the trailing 30-day window.</p>
+      </div>
+      <div class="item fade-up delay-1">
+        <div class="label">04 — Transaction Costs</div>
+        <h4>0.15% per side transaction costs and real funding</h4>
+        <p>Simulation model charges 0.15% per side on every position change and real Binance funding rates on perps, evaluating realistic execution frictions.</p>
+      </div>
+      <div class="item fade-up">
+        <div class="label">05 — Ensemble averaging</div>
+        <h4>Trades equal-weight average of top 3 configs</h4>
+        <p>Config weighting averages the top 3 configurations to reduce winner's-curse. If no configuration has a positive score, the book sits in cash.</p>
+      </div>
+      <div class="item fade-up delay-1">
+        <div class="label">06 — Walk-Forward protocol</div>
+        <h4>Weekly refit on 4h bars with 30d window</h4>
+        <p>Window optimization runs out-of-sample on 4h bars with a weekly refit every Monday 00:00 UTC, preventing overfitting and forward leakage.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="brand-block">
+      <div class="mark">
+        <span class="dot"></span>
+        <span>WF·CRYPTO</span>
+      </div>
+      <p>
+        An open research framework for walk-forward optimization in crypto
+        markets. Built by Tomi Seregi. Source code, full methodology, and
+        reproducible pipeline available on GitHub.
+      </p>
+    </div>
+    <div class="col">
+      <h5>Navigate</h5>
+      <ul>
+        <li><a href="#problem">Problem</a></li>
+        <li><a href="#methodology">Methodology</a></li>
+        <li><a href="#strategy">Strategy stack</a></li>
+        <li><a href="#performance">Performance</a></li>
+        <li><a href="#risk">Risk framework</a></li>
+      </ul>
+    </div>
+    <div class="col">
+      <h5>Resources</h5>
+      <ul>
+        <li><a href="interactive/dashboard.html">Equity dashboard</a></li>
+        <li><a href="https://github.com/AKzar1el/walk-forward-crypto" target="_blank" rel="noopener">GitHub repository</a></li>
+        <li><a href="https://tomiseregi.si/projects/alpha-sentient" target="_blank" rel="noopener">Project page</a></li>
+      </ul>
+    </div>
+    <div class="col">
+      <h5>Author</h5>
+      <ul>
+        <li><a href="https://tomiseregi.si" target="_blank" rel="noopener">Tomi Seregi</a></li>
+        <li><a href="https://github.com/AKzar1el" target="_blank" rel="noopener">AKzar1el @ GitHub</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="bottom container">
+    <div>© 2026 · Walk-Forward Crypto · MIT License</div>
+    <div class="disclaimer">Paper-traded research for methodological transparency. Not investment advice.</div>
+  </div>
+</footer>
+
+<script>
+/* ---------- Glyph rain (subtle background) ---------- */
+(function() {
+  const cvs = document.querySelector('canvas.rain');
+  if (!cvs) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    cvs.style.display = 'none';
+    return;
+  }
+
+  const ctx = cvs.getContext('2d');
+  const resize = () => {
+    cvs.width = window.innerWidth;
+    cvs.height = window.innerHeight;
+  };
+  window.addEventListener('resize', resize);
+  resize();
+
+  const COL_W = 22;
+  let cols = Math.floor(cvs.width / COL_W);
+  let drops = Array.from({ length: cols }, () => Math.random() * -cvs.height);
+  const CHARS = 'ABCDEF0123456789·+-=<>[]{}';
+
+  let running = true;
+  document.addEventListener('visibilitychange', () => {
+    running = !document.hidden;
+    if (running) requestAnimationFrame(frame);
+  });
+
+  function frame() {
+    if (!running) return;
+    ctx.fillStyle = 'rgba(10,10,10,0.07)';
+    ctx.fillRect(0, 0, cvs.width, cvs.height);
+    ctx.font = '13px "JetBrains Mono", monospace';
+    for (let i = 0; i < cols; i++) {
+      const x = i * COL_W;
+      const y = drops[i];
+      const bright = Math.random() < 0.018;
+      ctx.fillStyle = bright
+        ? 'rgba(255,220,170,0.95)'
+        : 'rgba(200,170,130,0.78)';
+      ctx.fillText(
+        CHARS[Math.floor(Math.random() * CHARS.length)],
+        x, y
+      );
+      drops[i] = y > cvs.height && Math.random() > 0.975
+        ? 0
+        : y + 12;
+    }
+    requestAnimationFrame(frame);
+  }
+  frame();
+
+  window.addEventListener('resize', () => {
+    cols = Math.floor(cvs.width / COL_W);
+    drops = Array.from({ length: cols }, () => Math.random() * -cvs.height);
+  });
+})();
+
+/* ---------- Hero scramble decode ---------- */
+(function() {
+  const TARGET = 'WALK-FORWARD EDGE';
+  const CHARS = '!<>-_\\/[]{}—=+*^?#________01ABCDEF';
+  const el = document.getElementById('hero-title');
+  if (!el) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    el.textContent = TARGET;
+    return;
+  }
+
+  let iter = 0;
+  const max = TARGET.length * 8;
+  el.classList.add('is-decoding');
+  el.textContent = '';
+
+  function tick() {
+    el.textContent = TARGET.split('').map((ch, i) => {
+      if (i < iter / 8) return TARGET[i];
+      return CHARS[Math.floor(Math.random() * CHARS.length)];
+    }).join('');
+    iter += 1;
+    if (iter >= max) {
+      el.textContent = TARGET;
+      el.classList.remove('is-decoding');
+      return;
+    }
+    setTimeout(tick, 42);
+  }
+  setTimeout(tick, 350);
+})();
+
+/* ---------- Fade-up on scroll ---------- */
+(function() {
+  const els = document.querySelectorAll('.fade-up');
+  const io = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) {
+          e.target.classList.add('is-in');
+          io.unobserve(e.target);
+        }
+      });
+    },
+    { threshold: 0.12, rootMargin: '0px 0px -60px 0px' }
+  );
+  els.forEach((el) => io.observe(el));
+})();
+
+/* ---------- Counter animation ---------- */
+(function() {
+  const counters = document.querySelectorAll('[data-counter]');
+  const io = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((e) => {
+        if (!e.isIntersecting) return;
+        const el = e.target;
+        const target = parseFloat(el.dataset.counter);
+        const decimals = parseInt(el.dataset.decimals || '0', 10);
+        const duration = 1800;
+        const start = performance.now();
+
+        function step(now) {
+          const elapsed = now - start;
+          const t = Math.min(1, elapsed / duration);
+          // easeOutExpo
+          const eased = t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+          const val = target * eased;
+          el.textContent = val.toFixed(decimals);
+          if (t < 1) requestAnimationFrame(step);
+          else el.textContent = target.toFixed(decimals);
+        }
+        requestAnimationFrame(step);
+        io.unobserve(el);
+      });
+    },
+    { threshold: 0.4 }
+  );
+  counters.forEach((c) => io.observe(c));
+})();
+
+/* ---------- Smooth anchor scroll offset for fixed nav ---------- */
+(function() {
+  document.querySelectorAll('a[href^="#"]').forEach((a) => {
+    a.addEventListener('click', (e) => {
+      const id = a.getAttribute('href');
+      if (id.length < 2) return;
+      const target = document.querySelector(id);
+      if (!target) return;
+      e.preventDefault();
+      const top = target.getBoundingClientRect().top + window.pageYOffset - 80;
+      window.scrollTo({ top, behavior: 'smooth' });
+    });
+  });
+})();
+</script>
+</body>
+</html>

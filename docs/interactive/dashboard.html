@@ -537,30 +537,32 @@ table.attrs td.neg { color: var(--red); }
 <section class="dash-header">
   <div class="container">
     <div class="meta fade-up">
-      <span>OOS REPORT · 2021.01.04 → 2024.08.12</span>
+      <span>OOS REPORT · 2024.01.01 → 2026.06.10</span>
     </div>
     <h1 class="fade-up delay-1">Out-of-Sample<br>Performance Dashboard</h1>
-    <p class="fade-up delay-2" style="max-width: 640px; color: var(--text-soft); font-size: 1.1rem;">
-      All metrics below are aggregated from 41 walk-forward test windows. 
-      No data point in this dashboard was seen by the optimizer during parameter fitting.
+    <p class="fade-up delay-2" style="max-width: 800px; color: var(--text-soft); font-size: 1.1rem; line-height: 1.6;">
+      <strong>Headline performance:</strong> +144.5% over Jan 2024 to Jun 2026 (+44.2%/yr, Sharpe 1.20 +/- 0.64) vs +46.0% for holding BTC, paper-traded net of costs and funding.
+    </p>
+    <p class="fade-up delay-2" style="max-width: 800px; color: var(--text-soft); font-size: 1.1rem; line-height: 1.6; margin-top: 0.5rem;">
+      <strong>2026 YTD Split:</strong> BTC Book +54.0% (Sharpe 2.39) | ETH Book +35.3% (Sharpe 1.82) with realized volatility of 41.6% (Sharpe SE +/-1.51).
     </p>
     
     <div class="info-grid fade-up delay-3">
       <div class="info-item">
         <div class="label">Universe</div>
-        <div class="val">BTC, ETH, SOL, AVAX, LINK</div>
+        <div class="val">BTC, ETH Only</div>
       </div>
       <div class="info-item">
         <div class="label">Window Config</div>
-        <div class="val">180d Train / 30d Test</div>
+        <div class="val">30d scoring window, weekly refit</div>
       </div>
       <div class="info-item">
-        <div class="label">Total OOS Trades</div>
-        <div class="val">1,247</div>
+        <div class="label">Total 4h Bars</div>
+        <div class="val">5,347</div>
       </div>
       <div class="info-item">
-        <div class="label">Generated</div>
-        <div class="val">2024.08.12 14:32 UTC</div>
+        <div class="label">Last Updated</div>
+        <div class="val">2026-06-10</div>
       </div>
     </div>
   </div>
@@ -572,236 +574,175 @@ table.attrs td.neg { color: var(--red); }
     <div class="metrics-grid fade-up">
       <div class="metric-card">
         <div class="label">Net Sharpe</div>
-        <div class="value" data-counter="1.87" data-decimals="2">0.00</div>
-        <div class="delta">Annualized</div>
-      </div>
-      <div class="metric-card">
-        <div class="label">Sortino</div>
-        <div class="value" data-counter="2.41" data-decimals="2">0.00</div>
-        <div class="delta">Downside-adjusted</div>
+        <div class="value" data-counter="1.20" data-decimals="2">1.20</div>
+        <div class="delta">+/- 0.64 Sharpe SE</div>
       </div>
       <div class="metric-card">
         <div class="label">Max DD</div>
-        <div class="value"><span data-counter="-14.2" data-decimals="1">0.0</span><span class="unit">%</span></div>
+        <div class="value"><span data-counter="-28.0" data-decimals="1">-28.0</span><span class="unit">%</span></div>
         <div class="delta neg">Peak to Trough</div>
       </div>
       <div class="metric-card">
         <div class="label">CAGR</div>
-        <div class="value"><span data-counter="38.4" data-decimals="1">0.0</span><span class="unit">%</span></div>
+        <div class="value"><span data-counter="44.2" data-decimals="1">44.2</span><span class="unit">%</span></div>
         <div class="delta">Compound Annual</div>
       </div>
       <div class="metric-card">
-        <div class="label">Win Rate</div>
-        <div class="value"><span data-counter="54.2" data-decimals="1">0.0</span><span class="unit">%</span></div>
-        <div class="delta">1,247 trades</div>
+        <div class="label">Cumulative Return</div>
+        <div class="value"><span data-counter="144.5" data-decimals="1">144.5</span><span class="unit">%</span></div>
+        <div class="delta">Full Period Return</div>
       </div>
       <div class="metric-card">
-        <div class="label">Profit Factor</div>
-        <div class="value" data-counter="1.94" data-decimals="2">0.00</div>
-        <div class="delta">Gross / Loss</div>
+        <div class="label">Hold BTC Return</div>
+        <div class="value"><span data-counter="46.0" data-decimals="1">46.0</span><span class="unit">%</span></div>
+        <div class="delta">Continuous Buy & Hold</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Hold ETH Return</div>
+        <div class="value"><span data-counter="-27.8" data-decimals="1">-27.8</span><span class="unit">%</span></div>
+        <div class="delta">Continuous Buy & Hold</div>
       </div>
     </div>
 
-    <!-- Equity Curve -->
+    <!-- Genuine Interactive Performance Chart -->
     <div class="chart-block fade-up">
       <div class="chart-head">
-        <h2>OOS Equity Curve</h2>
+        <h2>Interactive Performance Chart</h2>
         <div class="legend">
-          <span><span class="dot amber"></span> Strategy</span>
-          <span><span class="dot soft"></span> Buy & Hold (BTC)</span>
+          <span>Walk-Forward Equity, Drawdown, and Weekly Decisions</span>
         </div>
       </div>
-      <canvas id="equityChart" class="chart"></canvas>
+      <iframe src="./equity.html" style="width: 100%; height: 900px; border: none; background: transparent; border-radius: 4px;"></iframe>
     </div>
 
-    <!-- Drawdown -->
+    <!-- Per-Year Performance Table -->
     <div class="chart-block fade-up">
       <div class="chart-head">
-        <h2>Underwater Drawdown</h2>
+        <h2>Per-Year Performance</h2>
         <div class="legend">
-          <span><span class="dot amber"></span> Drawdown %</span>
-        </div>
-      </div>
-      <canvas id="drawdownChart" class="chart" style="height: 280px;"></canvas>
-    </div>
-
-    <!-- Monthly Heatmap -->
-    <div class="chart-block fade-up">
-      <div class="chart-head">
-        <h2>Monthly Returns Distribution</h2>
-        <div class="legend">
-          <span style="color: var(--text-mute);">Hover for exact return</span>
-        </div>
-      </div>
-      <div class="heatmap-wrapper">
-        <div class="heatmap" id="heatmap">
-          <!-- Generated via JS -->
-        </div>
-      </div>
-    </div>
-
-    <!-- Per-Asset Attribution -->
-    <div class="chart-block fade-up">
-      <div class="chart-head">
-        <h2>Per-Asset Attribution</h2>
-        <div class="legend">
-          <span>Net PnL Contribution</span>
+          <span>Standalone frozen replays vs Buy & Hold</span>
         </div>
       </div>
       <div class="table-wrapper">
         <table class="attrs">
           <thead>
             <tr>
-              <th>Asset</th>
-              <th>Trades</th>
-              <th>Win Rate</th>
-              <th>Net PnL (USD)</th>
-              <th>Sharpe</th>
+              <th>Period</th>
+              <th>System Return</th>
               <th>Max DD</th>
-              <th>Profit Factor</th>
+              <th>Sharpe</th>
+              <th>Hold BTC Return</th>
+              <th>Hold ETH Return</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td class="asset">BTC</td>
-              <td>312</td>
-              <td>56.4%</td>
-              <td class="pos">+$184,220</td>
-              <td>2.12</td>
-              <td class="neg">-11.2%</td>
-              <td>2.04</td>
+              <td class="asset">2024</td>
+              <td class="pos">+16.5%</td>
+              <td class="neg">-28.0%</td>
+              <td>0.60</td>
+              <td class="pos">+121.1%</td>
+              <td class="pos">+46.8%</td>
             </tr>
             <tr>
-              <td class="asset">ETH</td>
-              <td>284</td>
-              <td>55.1%</td>
-              <td class="pos">+$142,500</td>
-              <td>1.89</td>
-              <td class="neg">-14.8%</td>
-              <td>1.87</td>
+              <td class="asset">2025</td>
+              <td class="pos">+54.5%</td>
+              <td class="neg">-11.9%</td>
+              <td>1.52</td>
+              <td class="neg">-6.6%</td>
+              <td class="neg">-11.4%</td>
             </tr>
             <tr>
-              <td class="asset">SOL</td>
-              <td>245</td>
-              <td>52.3%</td>
-              <td class="pos">+$98,300</td>
-              <td>1.65</td>
-              <td class="neg">-22.4%</td>
-              <td>1.62</td>
+              <td class="asset">2026 YTD (dev period)</td>
+              <td class="pos">+45.1%</td>
+              <td class="neg">-21.3%</td>
+              <td>2.25</td>
+              <td class="neg">-29.7%</td>
+              <td class="neg">-44.9%</td>
             </tr>
-            <tr>
-              <td class="asset">AVAX</td>
-              <td>221</td>
-              <td>51.2%</td>
-              <td class="pos">+$64,100</td>
-              <td>1.42</td>
-              <td class="neg">-28.1%</td>
-              <td>1.44</td>
-            </tr>
-            <tr>
-              <td class="asset">LINK</td>
-              <td>185</td>
-              <td>52.8%</td>
-              <td class="neg">-$12,400</td>
-              <td>-0.24</td>
-              <td class="neg">-18.2%</td>
-              <td>0.92</td>
+            <tr style="background: rgba(200,170,130,0.08); font-weight: bold;">
+              <td class="asset">Full Period (Walk-Forward)</td>
+              <td class="pos">+144.5%</td>
+              <td class="neg">-28.0%</td>
+              <td>1.20 +/- 0.64</td>
+              <td class="pos">+46.0%</td>
+              <td class="neg">-27.8%</td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <!-- Recent Trade Log -->
+    <!-- Recent Weekly Decisions -->
     <div class="chart-block fade-up">
       <div class="chart-head">
-        <h2>Recent OOS Trades</h2>
+        <h2>Recent Weekly Decisions</h2>
         <div class="legend">
-          <span>Last 8 executed positions</span>
+          <span>Ensemble configuration family weights</span>
         </div>
       </div>
-      <div class="trade-log">
-        <div class="row head">
-          <div>Timestamp</div>
-          <div>Asset</div>
-          <div>Side</div>
-          <div>Entry</div>
-          <div>Exit</div>
-          <div>Return</div>
-          <div>Duration</div>
-        </div>
-        <div class="row">
-          <div>2024.08.12 14:32</div>
-          <div>BTC</div>
-          <div><span class="tag long">LONG</span></div>
-          <div>61,240</div>
-          <div>62,580</div>
-          <div class="ret pos">+2.18%</div>
-          <div>14h 12m</div>
-        </div>
-        <div class="row">
-          <div>2024.08.11 09:15</div>
-          <div>ETH</div>
-          <div><span class="tag short">SHORT</span></div>
-          <div>2,840</div>
-          <div>2,910</div>
-          <div class="ret neg">-2.46%</div>
-          <div>8h 45m</div>
-        </div>
-        <div class="row">
-          <div>2024.08.10 22:08</div>
-          <div>SOL</div>
-          <div><span class="tag long">LONG</span></div>
-          <div>142.2</div>
-          <div>148.9</div>
-          <div class="ret pos">+4.71%</div>
-          <div>22h 30m</div>
-        </div>
-        <div class="row">
-          <div>2024.08.09 11:20</div>
-          <div>AVAX</div>
-          <div><span class="tag short">SHORT</span></div>
-          <div>32.1</div>
-          <div>30.8</div>
-          <div class="ret pos">+4.05%</div>
-          <div>12h 10m</div>
-        </div>
-        <div class="row">
-          <div>2024.08.08 18:45</div>
-          <div>LINK</div>
-          <div><span class="tag long">LONG</span></div>
-          <div>14.2</div>
-          <div>13.9</div>
-          <div class="ret neg">-2.11%</div>
-          <div>4h 05m</div>
-        </div>
-        <div class="row">
-          <div>2024.08.07 06:30</div>
-          <div>BTC</div>
-          <div><span class="tag long">LONG</span></div>
-          <div>58,400</div>
-          <div>59,920</div>
-          <div class="ret pos">+2.60%</div>
-          <div>16h 45m</div>
-        </div>
-        <div class="row">
-          <div>2024.08.06 14:12</div>
-          <div>ETH</div>
-          <div><span class="tag short">SHORT</span></div>
-          <div>2,910</div>
-          <div>2,820</div>
-          <div class="ret pos">+3.09%</div>
-          <div>10h 20m</div>
-        </div>
-        <div class="row">
-          <div>2024.08.05 09:05</div>
-          <div>SOL</div>
-          <div><span class="tag short">SHORT</span></div>
-          <div>148.5</div>
-          <div>152.1</div>
-          <div class="ret neg">-2.42%</div>
-          <div>6h 15m</div>
-        </div>
+      <div class="table-wrapper">
+        <table class="attrs">
+          <thead>
+            <tr>
+              <th>Week Starting</th>
+              <th>BTC Book Active Family</th>
+              <th>ETH Book Active Family</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="asset">2026-06-08</td>
+              <td class="pos">trend</td>
+              <td class="pos">trend</td>
+            </tr>
+            <tr>
+              <td class="asset">2026-06-01</td>
+              <td class="pos">trend</td>
+              <td class="pos">trend</td>
+            </tr>
+            <tr>
+              <td class="asset">2026-05-25</td>
+              <td class="pos">trend</td>
+              <td class="pos">trend</td>
+            </tr>
+            <tr>
+              <td class="asset">2026-05-18</td>
+              <td class="pos">trend</td>
+              <td class="pos">trend</td>
+            </tr>
+            <tr>
+              <td class="asset">2026-05-11</td>
+              <td class="pos">trend</td>
+              <td class="pos">trend</td>
+            </tr>
+            <tr>
+              <td class="asset">2026-05-04</td>
+              <td class="pos">trend</td>
+              <td class="pos">trend</td>
+            </tr>
+            <tr>
+              <td class="asset">2026-04-27</td>
+              <td class="pos">trend</td>
+              <td class="pos">trend</td>
+            </tr>
+            <tr>
+              <td class="asset">2026-04-20</td>
+              <td class="pos">trend</td>
+              <td class="pos">mixed</td>
+            </tr>
+            <tr>
+              <td class="asset">2026-04-13</td>
+              <td class="pos">mean-reversion</td>
+              <td class="pos">mean-reversion</td>
+            </tr>
+            <tr>
+              <td class="asset">2026-04-06</td>
+              <td class="pos">mean-reversion</td>
+              <td class="pos">mean-reversion</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -809,6 +750,72 @@ table.attrs td.neg { color: var(--red); }
 </section>
 
 <script>
+/* ---------- Dynamic site_snapshot.json loader ---------- */
+async function loadSnapshot() {
+  try {
+    const res = await fetch('../site_snapshot.json');
+    if (!res.ok) return;
+    const data = await res.json();
+    
+    // Update header time
+    const metaSpan = document.querySelector('.dash-header .meta span');
+    if (metaSpan && data.data_through) {
+      metaSpan.textContent = `OOS REPORT · 2024.01.01 → ${data.data_through.replace(/-/g, '.')}`;
+    }
+    
+    // Update metrics cards data-counter and content
+    const cards = document.querySelectorAll('.metric-card');
+    if (cards.length >= 6 && data.full_period) {
+      // Net Sharpe (card 0)
+      const c0_val = cards[0].querySelector('.value');
+      if (c0_val) {
+        c0_val.dataset.counter = data.full_period.sharpe;
+        c0_val.textContent = data.full_period.sharpe.toFixed(2);
+      }
+      
+      // Max DD (card 1)
+      const c1_val = cards[1].querySelector('.value span');
+      if (c1_val) {
+        c1_val.dataset.counter = data.full_period.max_dd_pct;
+        c1_val.textContent = data.full_period.max_dd_pct.toFixed(1);
+      }
+      
+      // CAGR (card 2)
+      const c2_val = cards[2].querySelector('.value span');
+      if (c2_val) {
+        c2_val.dataset.counter = data.full_period.cagr_pct;
+        c2_val.textContent = data.full_period.cagr_pct.toFixed(1);
+      }
+      
+      // Cumulative Return (card 3)
+      const c3_val = cards[3].querySelector('.value span');
+      if (c3_val) {
+        c3_val.dataset.counter = data.full_period.return_pct;
+        c3_val.textContent = data.full_period.return_pct.toFixed(1);
+      }
+      
+      // Hold BTC (card 4)
+      const c4_val = cards[4].querySelector('.value span');
+      if (c4_val) {
+        c4_val.dataset.counter = data.hold.btc_pct;
+        c4_val.textContent = data.hold.btc_pct.toFixed(1);
+      }
+      
+      // Hold ETH (card 5)
+      const c5_val = cards[5].querySelector('.value span');
+      if (c5_val) {
+        c5_val.dataset.counter = data.hold.eth_pct;
+        c5_val.textContent = data.hold.eth_pct.toFixed(1);
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load site_snapshot.json, using hardcoded values', e);
+  }
+}
+
+// Run snapshot load immediately
+loadSnapshot();
+
 /* ---------- Fade-up on scroll ---------- */
 (function() {
   const els = document.querySelectorAll('.fade-up');
@@ -855,237 +862,6 @@ table.attrs td.neg { color: var(--red); }
     { threshold: 0.4 }
   );
   counters.forEach((c) => io.observe(c));
-})();
-
-/* ---------- Heatmap Generator ---------- */
-(function() {
-  const grid = document.getElementById('heatmap');
-  if (!grid) return;
-  
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const years = ['2021', '2022', '2023', '2024'];
-  
-  let html = '<div class="cell head"></div>';
-  months.forEach(m => html += `<div class="cell head">${m}</div>`);
-  
-  years.forEach(year => {
-    html += `<div class="cell year">${year}</div>`;
-    months.forEach((m, idx) => {
-      // Simulate realistic random returns with slight positive drift
-      let val = (Math.random() * 24 - 10).toFixed(1);
-      let cls = '';
-      let v = parseFloat(val);
-      
-      if (v > 15) cls = 'pos-3';
-      else if (v > 8) cls = 'pos-2';
-      else if (v > 0) cls = 'pos';
-      else if (v < -8) cls = 'neg-3';
-      else if (v < -4) cls = 'neg-2';
-      else if (v < 0) cls = 'neg';
-      
-      // Don't show future months for 2024
-      if (year === '2024' && idx > 6) {
-        html += `<div class="cell"></div>`;
-      } else {
-        html += `<div class="cell ${cls}" title="${m} ${year}: ${val}%">${val}%</div>`;
-      }
-    });
-  });
-  
-  grid.innerHTML = html;
-})();
-
-/* ---------- Canvas Charting ---------- */
-(function() {
-  function setupCanvas(canvas) {
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    const ctx = canvas.getContext('2d');
-    ctx.scale(dpr, dpr);
-    return { ctx, w: rect.width, h: rect.height };
-  }
-
-  // Generate dummy but realistic equity data
-  function genEquityData(points = 250) {
-    let strat = 100000;
-    let btc = 100000;
-    let stratData = [];
-    let btcData = [];
-    let peak = 100000;
-    let ddData = [];
-    
-    for (let i = 0; i < points; i++) {
-      // BTC random walk
-      let btcChange = (Math.random() - 0.45) * 0.02;
-      btc += btc * btcChange;
-      btcData.push(btc);
-      
-      // Strategy outperforming BTC with lower vol
-      let stratChange = (Math.random() - 0.42) * 0.015;
-      strat += strat * stratChange;
-      stratData.push(strat);
-      
-      // Drawdown calc
-      if (strat > peak) peak = strat;
-      let dd = ((strat - peak) / peak) * 100;
-      ddData.push(dd);
-    }
-    return { stratData, btcData, ddData };
-  }
-
-  function drawEquityChart() {
-    const canvas = document.getElementById('equityChart');
-    if (!canvas) return;
-    const { ctx, w, h } = setupCanvas(canvas);
-    const data = genEquityData(300);
-    
-    ctx.clearRect(0, 0, w, h);
-    
-    const padding = { top: 20, right: 40, bottom: 30, left: 60 };
-    const cw = w - padding.left - padding.right;
-    const ch = h - padding.top - padding.bottom;
-    
-    const allVals = [...data.stratData, ...data.btcData];
-    const minVal = Math.min(...allVals) * 0.95;
-    const maxVal = Math.max(...allVals) * 1.05;
-    
-    // Grid lines
-    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= 4; i++) {
-      let y = padding.top + (ch / 4) * i;
-      ctx.beginPath();
-      ctx.moveTo(padding.left, y);
-      ctx.lineTo(w - padding.right, y);
-      ctx.stroke();
-      
-      let val = maxVal - ((maxVal - minVal) / 4) * i;
-      ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      ctx.font = '10px "JetBrains Mono", monospace';
-      ctx.textAlign = 'right';
-      ctx.fillText('$' + (val / 1000).toFixed(1) + 'k', padding.left - 10, y + 3);
-    }
-    
-    // BTC (Soft line)
-    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    data.btcData.forEach((val, i) => {
-      let x = padding.left + (cw / (data.btcData.length - 1)) * i;
-      let y = padding.top + ch - ((val - minVal) / (maxVal - minVal)) * ch;
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-    
-    // Strategy Fill
-    const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + ch);
-    gradient.addColorStop(0, 'rgba(200,170,130,0.2)');
-    gradient.addColorStop(1, 'rgba(200,170,130,0)');
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.moveTo(padding.left, padding.top + ch);
-    data.stratData.forEach((val, i) => {
-      let x = padding.left + (cw / (data.stratData.length - 1)) * i;
-      let y = padding.top + ch - ((val - minVal) / (maxVal - minVal)) * ch;
-      ctx.lineTo(x, y);
-    });
-    ctx.lineTo(padding.left + cw, padding.top + ch);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Strategy Line
-    ctx.strokeStyle = 'rgba(200,170,130,1)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    data.stratData.forEach((val, i) => {
-      let x = padding.left + (cw / (data.stratData.length - 1)) * i;
-      let y = padding.top + ch - ((val - minVal) / (maxVal - minVal)) * ch;
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-  }
-
-  function drawDrawdownChart() {
-    const canvas = document.getElementById('drawdownChart');
-    if (!canvas) return;
-    const { ctx, w, h } = setupCanvas(canvas);
-    
-    // Reuse same data shape
-    const data = genEquityData(300).ddData;
-    
-    ctx.clearRect(0, 0, w, h);
-    
-    const padding = { top: 20, right: 40, bottom: 30, left: 60 };
-    const cw = w - padding.left - padding.right;
-    const ch = h - padding.top - padding.bottom;
-    
-    const minVal = Math.min(...data) * 1.1;
-    const maxVal = 0;
-    
-    // Grid
-    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= 4; i++) {
-      let y = padding.top + (ch / 4) * i;
-      ctx.beginPath();
-      ctx.moveTo(padding.left, y);
-      ctx.lineTo(w - padding.right, y);
-      ctx.stroke();
-      
-      let val = maxVal - ((maxVal - minVal) / 4) * i;
-      ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      ctx.font = '10px "JetBrains Mono", monospace';
-      ctx.textAlign = 'right';
-      ctx.fillText(val.toFixed(1) + '%', padding.left - 10, y + 3);
-    }
-    
-    // Fill (going UP from bottom because it's negative space)
-    const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + ch);
-    gradient.addColorStop(0, 'rgba(220,80,80,0.4)');
-    gradient.addColorStop(1, 'rgba(220,80,80,0)');
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.moveTo(padding.left, padding.top); // Start top left
-    data.forEach((val, i) => {
-      let x = padding.left + (cw / (data.length - 1)) * i;
-      // val is negative, mapping it to the chart space (0 is top, min is bottom)
-      let y = padding.top - ((val - maxVal) / (minVal - maxVal)) * ch;
-      ctx.lineTo(x, y);
-    });
-    ctx.lineTo(padding.left + cw, padding.top);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Line
-    ctx.strokeStyle = 'rgba(220,80,80,0.9)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    data.forEach((val, i) => {
-      let x = padding.left + (cw / (data.length - 1)) * i;
-      let y = padding.top - ((val - maxVal) / (minVal - maxVal)) * ch;
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-  }
-
-  // Initial draw
-  drawEquityChart();
-  drawDrawdownChart();
-  
-  // Redraw on resize
-  let resizeTimer;
-  window.addEventListener('resize', () => {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => {
-      drawEquityChart();
-      drawDrawdownChart();
-    }, 250);
-  });
 })();
 </script>
 </body>
