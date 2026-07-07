@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Walk-Forward Crypto — OOS Dashboard</title>
+<title>Walk-Forward Crypto — Adaptive Out-of-Sample Trading System</title>
+<meta name="description" content="A walk-forward optimization framework for crypto markets. Signals validated out-of-sample, risk managed per regime, execution simulated under realistic frictions.">
+<link rel="icon" type="image/png" href="../assets/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700;800;900&display=swap">
@@ -19,17 +21,17 @@
   --accent: rgba(200,170,130,1);
   --accent-soft: rgba(200,170,130,0.25);
   --accent-dim: rgba(200,170,130,0.08);
-  --green: rgba(100, 200, 120, 0.9);
-  --red: rgba(220, 80, 80, 0.9);
   --line: rgba(255,255,255,0.10);
   --line-soft: rgba(255,255,255,0.06);
   --ease-quiet: cubic-bezier(.22, 1, .36, 1);
   --ease-precise: cubic-bezier(.4, 0, .2, 1);
+  --ease-emphasis: cubic-bezier(.16, 1, .3, 1);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 html {
+  scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -45,6 +47,16 @@ body {
 
 ::selection { background: var(--accent); color: var(--bg); }
 
+/* Background glyph rain */
+canvas.rain {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.13;
+}
+
 /* Navigation */
 nav.top {
   position: fixed;
@@ -55,7 +67,7 @@ nav.top {
   align-items: center;
   justify-content: space-between;
   padding: 1.25rem 2.5rem;
-  background: rgba(10,10,10,0.85);
+  background: rgba(10,10,10,0.72);
   backdrop-filter: blur(20px) saturate(140%);
   -webkit-backdrop-filter: blur(20px) saturate(140%);
   border-bottom: 1px solid var(--line-soft);
@@ -73,20 +85,25 @@ nav .brand {
   text-decoration: none;
 }
 
-nav .brand .mark {
-  width: 8px; height: 8px;
-  background: var(--accent);
-  border-radius: 50%;
-  box-shadow: 0 0 12px var(--accent-soft);
+nav .brand .brand-logo {
+  height: 20px;
+  width: 20px;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 0 10px var(--accent-soft);
+  transition: transform 400ms var(--ease-quiet);
+}
+nav .brand:hover .brand-logo {
+  transform: scale(1.08);
 }
 
-nav .breadcrumb {
+nav .links {
   display: flex;
-  gap: 1.5rem;
-  align-items: center;
+  gap: 2.5rem;
+  list-style: none;
 }
 
-nav .breadcrumb a {
+nav .links a {
   color: var(--text-dim);
   text-decoration: none;
   font-family: 'JetBrains Mono', monospace;
@@ -94,15 +111,44 @@ nav .breadcrumb a {
   letter-spacing: 0.18em;
   text-transform: uppercase;
   transition: color 400ms var(--ease-quiet);
+  position: relative;
+  padding: 0.3rem 0;
 }
 
-nav .breadcrumb a:hover { color: var(--text); }
-nav .breadcrumb span { color: var(--text-mute); font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
+nav .links a:hover { color: var(--text); }
+
+nav .links a::after {
+  content: '';
+  position: absolute;
+  bottom: -2px; left: 0;
+  width: 0; height: 1px;
+  background: var(--accent);
+  transition: width 400ms var(--ease-quiet);
+}
+
+nav .links a:hover::after { width: 100%; }
 
 nav .cta {
   display: flex;
-  gap: 0.85rem;
   align-items: center;
+  gap: 0.85rem;
+}
+
+nav .cta a.icon {
+  width: 34px; height: 34px;
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  color: var(--text-dim);
+  transition: all 400ms var(--ease-quiet);
+  text-decoration: none;
+}
+
+nav .cta a.icon:hover {
+  color: var(--accent);
+  border-color: var(--accent-soft);
+  background: var(--accent-dim);
 }
 
 nav .cta a.button {
@@ -128,7 +174,7 @@ nav .cta a.button:hover {
 section {
   position: relative;
   z-index: 1;
-  padding: 8rem 2.5rem 4rem;
+  padding: 8rem 2.5rem;
 }
 
 .container {
@@ -136,299 +182,798 @@ section {
   margin: 0 auto;
 }
 
-/* Dashboard Header */
-.dash-header {
-  padding-top: 7rem;
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 3rem;
+.container-narrow {
+  max-width: 860px;
+  margin: 0 auto;
 }
 
-.dash-header .meta {
+.section-label {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.7rem;
   letter-spacing: 0.25em;
   text-transform: uppercase;
   color: var(--accent);
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
   display: flex;
   align-items: center;
   gap: 1rem;
 }
 
-.dash-header h1 {
+.section-label .num {
+  color: var(--text-dim);
+}
+
+.section-label .line {
+  flex: 1;
+  height: 1px;
+  background: var(--line-soft);
+  max-width: 60px;
+}
+
+.section-headline {
   font-family: 'Inter', sans-serif;
   font-weight: 800;
-  font-size: clamp(2rem, 4.5vw, 3.5rem);
+  font-size: clamp(2rem, 4.8vw, 3.75rem);
   line-height: 1.05;
   letter-spacing: -0.028em;
-  margin-bottom: 1.5rem;
-}
-
-.dash-header .info-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 2rem;
-  margin-top: 3rem;
-}
-
-.dash-header .info-item .label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.65rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  margin-bottom: 0.5rem;
-}
-
-.dash-header .info-item .val {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.95rem;
+  margin-bottom: 1.75rem;
   color: var(--text);
+}
+
+.section-sub {
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: var(--text-soft);
+  max-width: 640px;
+  margin-bottom: 4rem;
+  font-weight: 400;
+}
+
+/* Hero */
+section.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 9rem 2.5rem 4rem;
+  z-index: 1;
+  overflow: hidden;
+}
+
+section.hero::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 110%;
+  height: 110%;
+  background-image: url('../assets/hero_background.png');
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: top left;
+  opacity: 0.08;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.hero .container {
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.hero .eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 2.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.hero .eyebrow .line {
+  width: 50px;
+  height: 1px;
+  background: var(--accent-soft);
+}
+
+.hero h1 {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: clamp(2.5rem, 8.5vw, 7.5rem);
+  line-height: 0.95;
+  letter-spacing: -0.045em;
+  margin-bottom: 2.5rem;
+  color: var(--text);
+  min-height: 0.95em;
+}
+
+.hero h1.is-decoding {
+  text-shadow: 0 0 18px rgba(200,170,130,0.45);
+}
+
+.hero .subtitle {
+  font-size: 1.15rem;
+  line-height: 1.6;
+  color: var(--text-soft);
+  max-width: 680px;
+  margin-bottom: 3.5rem;
+  font-weight: 400;
+}
+
+.hero .actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 6rem;
+}
+
+.hero .actions a.primary {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--bg);
+  background: var(--accent);
+  padding: 1.1rem 2rem;
+  text-decoration: none;
+  border-radius: 2px;
+  transition: all 400ms var(--ease-quiet);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.hero .actions a.primary:hover {
+  background: var(--text);
+  transform: translateY(-2px);
+}
+
+.hero .actions a.primary .arrow {
+  transition: transform 400ms var(--ease-quiet);
+  display: inline-block;
+}
+
+.hero .actions a.primary:hover .arrow {
+  transform: translateX(4px);
+}
+
+.hero .actions a.secondary {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text);
+  padding: 1.1rem 2rem;
+  text-decoration: none;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  transition: all 400ms var(--ease-quiet);
   font-weight: 500;
 }
 
-/* Metrics Grid */
-.metrics-grid {
+.hero .actions a.secondary:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Hero stats strip */
+.hero .stats {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 1px;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--line);
+  padding-top: 2.5rem;
+}
+
+.hero .stats .stat {
+  position: relative;
+  padding-right: 1.5rem;
+}
+
+.hero .stats .stat:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 1px; height: 100%;
   background: var(--line-soft);
-  border-top: 1px solid var(--line-soft);
-  border-bottom: 1px solid var(--line-soft);
-  margin-bottom: 5rem;
 }
 
-.metric-card {
-  background: var(--bg);
-  padding: 2rem 1.5rem;
-  transition: background 400ms var(--ease-quiet);
-}
-
-.metric-card:hover { background: var(--bg-soft); }
-
-.metric-card .label {
+.hero .stats .stat .label {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.65rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--text-dim);
-  margin-bottom: 1rem;
+  margin-bottom: 0.85rem;
 }
 
-.metric-card .value {
+.hero .stats .stat .value {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 1.85rem;
+  font-size: 1.75rem;
   font-weight: 700;
   color: var(--text);
   letter-spacing: -0.02em;
-  line-height: 1;
 }
 
-.metric-card .value .unit {
-  font-size: 0.9rem;
-  color: var(--accent);
+.hero .stats .stat .value .unit {
+  font-size: 0.875rem;
+  color: var(--text-dim);
   font-weight: 400;
   margin-left: 0.25rem;
 }
 
-.metric-card .delta {
-  margin-top: 0.85rem;
+/* Problem section */
+.problem .compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--line-soft);
+  border: 1px solid var(--line-soft);
+}
+
+.problem .card {
+  background: var(--bg);
+  padding: 3rem 2.5rem;
+  position: relative;
+}
+
+.problem .card .badge {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.75rem;
-  color: var(--green);
+  font-size: 0.65rem;
+  letter-spacing: 0.22em;
+  color: var(--text-dim);
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--line);
+  display: inline-block;
+  margin-bottom: 1.75rem;
+  border-radius: 2px;
 }
 
-.metric-card .delta.neg { color: var(--red); }
-
-/* Chart Containers */
-.chart-block {
-  margin-bottom: 5rem;
+.problem .card .badge.accent {
+  color: var(--accent);
+  border-color: var(--accent-soft);
+  background: var(--accent-dim);
 }
 
-.chart-block .chart-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 2rem;
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 1.25rem;
-}
-
-.chart-block .chart-head h2 {
+.problem .card h3 {
   font-family: 'Inter', sans-serif;
   font-weight: 700;
-  font-size: 1.5rem;
+  font-size: 1.4rem;
+  margin-bottom: 2rem;
+  color: var(--text);
   letter-spacing: -0.015em;
 }
 
-.chart-block .chart-head .legend {
-  display: flex;
-  gap: 1.5rem;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.75rem;
-  color: var(--text-dim);
+.problem .card ul {
+  list-style: none;
+  margin-bottom: 2rem;
 }
 
-.chart-block .chart-head .legend span {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.chart-block .chart-head .legend .dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-}
-
-.chart-block .chart-head .legend .dot.amber { background: var(--accent); }
-.chart-block .chart-head .legend .dot.soft { background: rgba(255,255,255,0.2); }
-
-canvas.chart {
-  width: 100%;
-  height: 420px;
-  display: block;
-}
-
-/* Heatmap */
-.heatmap-wrapper {
-  overflow-x: auto;
-  padding-bottom: 1rem;
-}
-
-.heatmap {
-  display: grid;
-  grid-template-columns: 60px repeat(12, 1fr);
-  gap: 2px;
-  min-width: 800px;
-}
-
-.heatmap .cell {
-  background: var(--bg-card);
-  padding: 1rem 0.5rem;
-  text-align: center;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.75rem;
-  color: var(--text-dim);
-  border-radius: 2px;
-  transition: transform 300ms var(--ease-quiet);
-}
-
-.heatmap .cell.head {
-  color: var(--text-mute);
-  font-size: 0.7rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  background: transparent;
-}
-
-.heatmap .cell.year {
+.problem .card ul li {
+  position: relative;
+  padding-left: 1.75rem;
+  margin-bottom: 0.9rem;
   color: var(--text-soft);
-  background: transparent;
-  text-align: left;
-  padding-left: 0;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.problem .card.bad ul li::before {
+  content: '✕';
+  position: absolute;
+  left: 0;
+  color: var(--text-mute);
+  font-family: 'JetBrains Mono', monospace;
   font-weight: 700;
 }
 
-.heatmap .cell.pos { background: rgba(200,170,130,0.15); color: var(--accent); }
-.heatmap .cell.pos-2 { background: rgba(200,170,130,0.35); color: var(--accent); }
-.heatmap .cell.pos-3 { background: rgba(200,170,130,0.60); color: var(--bg); font-weight: 700; }
-.heatmap .cell.neg { background: rgba(220,80,80,0.15); color: var(--red); }
-.heatmap .cell.neg-2 { background: rgba(220,80,80,0.35); color: var(--red); }
-.heatmap .cell.neg-3 { background: rgba(220,80,80,0.55); color: #fff; font-weight: 700; }
-
-.heatmap .cell:hover { transform: scale(1.1); z-index: 10; border: 1px solid var(--text); }
-
-/* Attribution Table */
-.table-wrapper {
-  border: 1px solid var(--line-soft);
-  overflow: hidden;
-  border-radius: 4px;
-}
-
-table.attrs {
-  width: 100%;
-  border-collapse: collapse;
+.problem .card.good ul li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--accent);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.85rem;
+  font-weight: 700;
 }
 
-table.attrs th {
-  text-align: left;
-  padding: 1.25rem 1.5rem;
-  background: rgba(255,255,255,0.025);
-  color: var(--text-dim);
+.problem .card .result {
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line-soft);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.875rem;
+  color: var(--text-soft);
+  letter-spacing: 0.02em;
+}
+
+.problem .card.bad .result { color: var(--text-dim); }
+.problem .card.good .result { color: var(--text); }
+
+/* Methodology - sticky two column */
+.methodology .sticky-pair {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 6rem;
+  align-items: start;
+}
+
+.methodology .left {
+  position: sticky;
+  top: 8rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.methodology .right {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--line-soft);
+  border: 1px solid var(--line-soft);
+}
+
+.methodology .step {
+  background: var(--bg);
+  padding: 3rem 2.25rem;
+  position: relative;
+  transition: background 400ms var(--ease-quiet);
+}
+
+.methodology .step:hover {
+  background: var(--bg-soft);
+}
+
+.methodology .step .index {
+  font-family: 'JetBrains Mono', monospace;
   font-size: 0.7rem;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.22em;
+  color: var(--accent);
+  margin-bottom: 1rem;
+}
+
+.methodology .step h3 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 1.45rem;
+  letter-spacing: -0.015em;
+  margin-bottom: 1rem;
+  color: var(--text);
+}
+
+.methodology .step p {
+  color: var(--text-soft);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+}
+
+.methodology .step .diagram {
+  margin-top: 1.5rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+  padding: 1rem 1.25rem;
+  background: rgba(0,0,0,0.45);
+  border: 1px solid var(--line-soft);
+  border-radius: 2px;
+  white-space: pre;
+  line-height: 1.55;
+  overflow-x: auto;
+}
+
+/* Strategy rows */
+.strategy .rows {
+  border-top: 1px solid var(--line);
+}
+
+.strategy .row {
+  display: grid;
+  grid-template-columns: 70px 1fr 1.6fr 130px;
+  gap: 2.5rem;
+  padding: 3rem 1.5rem;
+  border-bottom: 1px solid var(--line);
+  position: relative;
+  align-items: start;
+  transition: background 600ms var(--ease-quiet);
+}
+
+.strategy .row::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0;
+  width: 2px; height: 0;
+  background: var(--accent);
+  transition: height 600ms var(--ease-quiet);
+}
+
+.strategy .row:hover::before { height: 100%; }
+
+.strategy .row .num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  color: var(--text-dim);
+  transition: color 600ms var(--ease-quiet);
+  padding-top: 0.4rem;
+}
+
+.strategy .row:hover .num { color: var(--accent); }
+
+.strategy .row h3 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 1.45rem;
+  letter-spacing: -0.015em;
+  color: var(--text);
+  transition: color 600ms var(--ease-quiet);
+}
+
+.strategy .row:hover h3 { color: var(--accent); }
+
+.strategy .row p {
+  color: var(--text-dim);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  transition: color 600ms var(--ease-quiet);
+}
+
+.strategy .row:hover p { color: var(--text-soft); }
+
+.strategy .row .tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+  text-align: right;
   text-transform: uppercase;
-  font-weight: 500;
+  padding-top: 0.4rem;
+}
+
+/* Performance section */
+.performance {
+  background: var(--bg);
+  border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
 }
 
-table.attrs td {
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid var(--line-soft);
-  color: var(--text-soft);
-}
-
-table.attrs tr:last-child td { border-bottom: none; }
-
-table.attrs tr {
-  transition: background 300ms var(--ease-quiet);
-}
-
-table.attrs tbody tr:hover { background: rgba(255,255,255,0.02); }
-
-table.attrs td.asset { color: var(--text); font-weight: 700; }
-table.attrs td.pos { color: var(--green); }
-table.attrs td.neg { color: var(--red); }
-
-/* Trade Log */
-.trade-log {
-  background: rgba(0,0,0,0.3);
-  border: 1px solid var(--line-soft);
-  border-radius: 4px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.8rem;
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.trade-log::-webkit-scrollbar { width: 6px; }
-.trade-log::-webkit-scrollbar-track { background: transparent; }
-.trade-log::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
-
-.trade-log .row {
+.performance .grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr 1.5fr 1fr 1fr;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--line-soft);
-  gap: 1rem;
-  align-items: center;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--line-soft);
+  margin-bottom: 4rem;
+  border: 1px solid var(--line-soft);
 }
 
-.trade-log .row:last-child { border-bottom: none; }
-.trade-log .row.head { 
-  background: rgba(255,255,255,0.025); 
-  color: var(--text-mute); 
-  font-size: 0.7rem; 
-  letter-spacing: 0.15em; 
-  text-transform: uppercase;
-  position: sticky;
-  top: 0;
+.performance .metric {
+  background: var(--bg);
+  padding: 3rem 2.25rem;
+  position: relative;
+  transition: background 400ms var(--ease-quiet);
 }
 
-.trade-log .row .tag {
-  padding: 0.2rem 0.5rem;
-  border-radius: 2px;
+.performance .metric:hover { background: var(--bg-soft); }
+
+.performance .metric .label {
+  font-family: 'JetBrains Mono', monospace;
   font-size: 0.7rem;
-  text-align: center;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 1.75rem;
 }
 
-.trade-log .row .tag.long { background: rgba(100,200,120,0.15); color: var(--green); }
-.trade-log .row .tag.short { background: rgba(220,80,80,0.15); color: var(--red); }
+.performance .metric .value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.025em;
+  line-height: 1;
+}
 
-.trade-log .row .ret.pos { color: var(--green); }
-.trade-log .row .ret.neg { color: var(--red); }
+.performance .metric .value .unit {
+  font-size: 1rem;
+  color: var(--accent);
+  font-weight: 400;
+  margin-left: 0.35rem;
+}
+
+.performance .metric .note {
+  margin-top: 1.25rem;
+  font-size: 0.8125rem;
+  color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.04em;
+}
+
+.performance .cta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2.5rem 0 0;
+  border-top: 1px solid var(--line-soft);
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.performance .cta-row .copy {
+  max-width: 560px;
+}
+
+.performance .cta-row .copy h4 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.performance .cta-row .copy p {
+  color: var(--text-dim);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.performance .cta-row a.button {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--bg);
+  background: var(--accent);
+  padding: 1.1rem 2rem;
+  text-decoration: none;
+  border-radius: 2px;
+  transition: all 400ms var(--ease-quiet);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  white-space: nowrap;
+}
+
+.performance .cta-row a.button:hover {
+  background: var(--text);
+  transform: translateY(-2px);
+}
+
+/* Engineering / pipeline */
+.tech .pipeline {
+  margin-top: 1rem;
+  margin-bottom: 4rem;
+  background: rgba(0,0,0,0.45);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.tech .pipeline-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.1rem;
+  background: rgba(255,255,255,0.025);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.tech .pipeline-head .dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+}
+
+.tech .pipeline-head .dot.red { background: rgba(255,90,90,0.55); }
+.tech .pipeline-head .dot.yellow { background: rgba(255,200,90,0.55); }
+.tech .pipeline-head .dot.green { background: rgba(90,200,120,0.55); }
+
+.tech .pipeline-head .path {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  margin-left: 1rem;
+  letter-spacing: 0.04em;
+}
+
+.tech .pipeline pre {
+  padding: 1.5rem 1.75rem;
+  overflow-x: auto;
+  margin: 0;
+}
+
+.tech .pipeline code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  line-height: 1.75;
+  color: var(--text-soft);
+  white-space: pre;
+}
+
+.tech .pipeline .comment { color: var(--text-mute); }
+.tech .pipeline .cmd { color: var(--accent); }
+.tech .pipeline .str { color: #d4b896; }
+.tech .pipeline .num { color: #b8c4d4; }
+.tech .pipeline .flag { color: #c8b89a; }
+
+.tech .grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--line-soft);
+  border: 1px solid var(--line-soft);
+}
+
+.tech .cell {
+  background: var(--bg);
+  padding: 2rem 1.5rem;
+  transition: background 400ms var(--ease-quiet);
+  position: relative;
+}
+
+.tech .cell:hover { background: var(--bg-soft); }
+
+.tech .cell::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 0; height: 1px;
+  background: var(--accent);
+  transition: width 600ms var(--ease-quiet);
+}
+
+.tech .cell:hover::before { width: 100%; }
+
+.tech .cell .name {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 0.45rem;
+  letter-spacing: -0.005em;
+}
+
+.tech .cell .role {
+  font-size: 0.8125rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+/* Risk framework */
+.risk .grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3.5rem 4rem;
+}
+
+.risk .item {
+  border-top: 1px solid var(--line);
+  padding-top: 2rem;
+  position: relative;
+}
+
+.risk .item::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: 0;
+  width: 32px; height: 1px;
+  background: var(--accent);
+}
+
+.risk .item .label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 1rem;
+}
+
+.risk .item h4 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 1.2rem;
+  margin-bottom: 0.85rem;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+}
+
+.risk .item p {
+  color: var(--text-soft);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+}
+
+/* Footer */
+footer {
+  padding: 6rem 2.5rem 2.5rem;
+  border-top: 1px solid var(--line);
+  position: relative;
+  z-index: 1;
+  background: var(--bg);
+}
+
+footer .container {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 4rem;
+  margin-bottom: 4rem;
+}
+
+footer .brand-block .mark {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--text);
+}
+
+footer .brand-block .mark .dot {
+  width: 8px; height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 12px var(--accent-soft);
+}
+
+footer .brand-block p {
+  color: var(--text-dim);
+  font-size: 0.875rem;
+  line-height: 1.65;
+  max-width: 360px;
+}
+
+footer .col h5 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 1.5rem;
+}
+
+footer .col ul {
+  list-style: none;
+}
+
+footer .col ul li {
+  margin-bottom: 0.75rem;
+}
+
+footer .col ul li a {
+  color: var(--text-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 400ms var(--ease-quiet);
+}
+
+footer .col ul li a:hover {
+  color: var(--accent);
+}
+
+footer .bottom {
+  border-top: 1px solid var(--line-soft);
+  padding-top: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+footer .bottom .disclaimer {
+  color: var(--text-mute);
+}
 
 /* Fade-up animation */
 .fade-up {
@@ -443,343 +988,655 @@ table.attrs td.neg { color: var(--red); }
   transform: none;
 }
 
+.fade-up.delay-1 { transition-delay: 100ms; }
+.fade-up.delay-2 { transition-delay: 200ms; }
+.fade-up.delay-3 { transition-delay: 300ms; }
+.fade-up.delay-4 { transition-delay: 400ms; }
+
 /* Responsive */
 @media (max-width: 1024px) {
-  nav .breadcrumb { display: none; }
+  nav .links { display: none; }
   nav.top { padding: 1rem 1.5rem; }
-  
-  .dash-header .info-grid {
+
+  .hero .stats {
     grid-template-columns: repeat(2, 1fr);
-    gap: 2rem;
+    gap: 2rem 0;
   }
-  
-  .metrics-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .hero .stats .stat:not(:last-child)::after { display: none; }
+  .hero .stats .stat:nth-child(odd)::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 1px; height: 100%;
+    background: var(--line-soft);
   }
-  
-  .trade-log .row {
-    grid-template-columns: 1fr 1fr 1fr;
-    font-size: 0.75rem;
+
+  .methodology .sticky-pair {
+    grid-template-columns: 1fr;
+    gap: 3rem;
   }
-  .trade-log .row > *:nth-child(4),
-  .trade-log .row > *:nth-child(5),
-  .trade-log .row > *:nth-child(6),
-  .trade-log .row > *:nth-child(7) {
-    display: none;
+  .methodology .left { position: static; }
+
+  .strategy .row {
+    grid-template-columns: 50px 1fr;
+    gap: 1.25rem;
+    padding: 2rem 1rem;
   }
+  .strategy .row p, .strategy .row .tag {
+    grid-column: 2;
+  }
+  .strategy .row .tag { text-align: left; padding-top: 0.5rem; }
+
+  .performance .grid { grid-template-columns: repeat(2, 1fr); }
+
+  .tech .grid { grid-template-columns: repeat(2, 1fr); }
+
+  .risk .grid { grid-template-columns: 1fr; gap: 2.5rem; }
+
+  .problem .compare { grid-template-columns: 1fr; }
+
+  footer .container { grid-template-columns: 1fr 1fr; gap: 2.5rem; }
 }
 
 @media (max-width: 640px) {
-  section { padding: 6rem 1.5rem 3rem; }
-  .dash-header { padding-top: 6rem; }
-  .dash-header .info-grid { grid-template-columns: 1fr; }
-  .metrics-grid { grid-template-columns: 1fr; }
-  canvas.chart { height: 300px; }
-  table.attrs { font-size: 0.75rem; }
-  table.attrs th, table.attrs td { padding: 1rem; }
+  section, section.hero { padding: 5rem 1.5rem; }
+  nav.top { padding: 0.9rem 1.25rem; }
+  nav .cta a.button { padding: 0.55rem 0.95rem; font-size: 0.65rem; }
+  nav .cta a.icon { width: 30px; height: 30px; }
+
+  .hero .actions { flex-direction: column; align-items: stretch; }
+  .hero .actions a { justify-content: center; }
+
+  .hero .stats { grid-template-columns: 1fr 1fr; gap: 2rem 1.5rem; }
+  .hero .stats .stat::after { display: none !important; }
+
+  .performance .grid { grid-template-columns: 1fr; }
+  .tech .grid { grid-template-columns: 1fr; }
+  .problem .card { padding: 2rem 1.5rem; }
+  .methodology .step { padding: 2rem 1.5rem; }
+
+  footer .container { grid-template-columns: 1fr; gap: 2rem; }
+  footer .bottom { flex-direction: column; align-items: flex-start; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+  canvas.rain { display: none; }
   .fade-up { opacity: 1; transform: none; }
 }
 </style>
 </head>
 <body>
 
+<canvas class="rain"></canvas>
+
 <nav class="top">
-  <a href="./equity.html" class="brand">
-    <span class="mark"></span>
+  <a href="#" class="brand">
+    <img src="../assets/brand_logo.png" alt="Walk-Forward Crypto Logo" class="brand-logo">
     <span>WF·CRYPTO</span>
   </a>
-  <div class="breadcrumb">
-    <a href="./equity.html">Overview</a>
-    <span>/</span>
-    <a href="./dashboard.html">OOS Dashboard</a>
-  </div>
+  <ul class="links">
+    <li><a href="#problem">Problem</a></li>
+    <li><a href="#methodology">Methodology</a></li>
+    <li><a href="#strategy">Strategy</a></li>
+    <li><a href="#performance">Performance</a></li>
+    <li><a href="#risk">Risk</a></li>
+  </ul>
   <div class="cta">
-    <a href="https://github.com/AKzar1el/walk-forward-crypto" target="_blank" rel="noopener" class="button">View Repo →</a>
+    <a href="https://github.com/AKzar1el/walk-forward-crypto" target="_blank" rel="noopener" class="icon" aria-label="GitHub repository">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+    </a>
+    <a href="./dashboard.html" class="button">Open dashboard →</a>
   </div>
 </nav>
 
-<section class="dash-header">
+<!-- HERO -->
+<section class="hero">
   <div class="container">
-    <div class="meta fade-up">
-      <span>OOS REPORT · 2021.01.04 → 2024.08.12</span>
+    <div class="eyebrow fade-up">
+      <span class="line"></span>
+      <span>Walk-Forward Optimization · Crypto Markets · v2.4</span>
     </div>
-    <h1 class="fade-up delay-1">Out-of-Sample<br>Performance Dashboard</h1>
-    <p class="fade-up delay-2" style="max-width: 640px; color: var(--text-soft); font-size: 1.1rem;">
-      All metrics below are aggregated from 41 walk-forward test windows. 
-      No data point in this dashboard was seen by the optimizer during parameter fitting.
+    <h1 id="hero-title">WALK-FORWARD EDGE</h1>
+    <p class="subtitle fade-up delay-1">
+      A research framework that fits strategies on rolling in-sample windows
+      and validates every signal against out-of-sample data it has never seen.
+      No curve-fit. No look-ahead. No narrative drift — only edges that survive
+      the next candle.
     </p>
-    
-    <div class="info-grid fade-up delay-3">
-      <div class="info-item">
-        <div class="label">Universe</div>
-        <div class="val">BTC, ETH, SOL, AVAX, LINK</div>
+    <div class="actions fade-up delay-2">
+      <a href="./dashboard.html" class="primary">
+        <span>Open equity dashboard</span>
+        <span class="arrow">→</span>
+      </a>
+      <a href="#problem" class="secondary">Read methodology</a>
+    </div>
+    <div class="stats fade-up delay-3">
+      <div class="stat">
+        <div class="label">OOS Sharpe</div>
+        <div class="value" data-counter="1.87" data-decimals="2">0.00</div>
       </div>
-      <div class="info-item">
-        <div class="label">Window Config</div>
-        <div class="val">180d Train / 30d Test</div>
+      <div class="stat">
+        <div class="label">Max Drawdown</div>
+        <div class="value"><span data-counter="-14.2" data-decimals="1">0.0</span><span class="unit">%</span></div>
       </div>
-      <div class="info-item">
-        <div class="label">Total OOS Trades</div>
-        <div class="val">1,247</div>
+      <div class="stat">
+        <div class="label">CAGR (OOS)</div>
+        <div class="value"><span data-counter="38.4" data-decimals="1">0.0</span><span class="unit">%</span></div>
       </div>
-      <div class="info-item">
-        <div class="label">Generated</div>
-        <div class="val">2024.08.12 14:32 UTC</div>
+      <div class="stat">
+        <div class="label">OOS Trades</div>
+        <div class="value" data-counter="1247" data-decimals="0">0</div>
       </div>
     </div>
   </div>
 </section>
 
-<section style="padding-top: 4rem;">
+<!-- PROBLEM -->
+<section class="problem" id="problem">
   <div class="container">
-    <!-- Key Metrics -->
-    <div class="metrics-grid fade-up">
-      <div class="metric-card">
-        <div class="label">Net Sharpe</div>
+    <div class="section-label fade-up">
+      <span class="num">00 /</span>
+      <span>The Problem</span>
+      <span class="line"></span>
+    </div>
+    <h2 class="section-headline fade-up delay-1">A backtest is a story.<br>A walk-forward is a stress test.</h2>
+    <p class="section-sub fade-up delay-2">
+      Most crypto backtests are theatre: parameters tuned on the same data they
+      are then evaluated on, look-ahead leakage baked into features, slippage
+      assumed away. The walk-forward protocol exists to make the backtest
+      honest.
+    </p>
+    <div class="compare">
+      <div class="card bad fade-up">
+        <div class="badge">NAIVE BACKTEST</div>
+        <h3>Fit on full history, evaluate on full history</h3>
+        <ul>
+          <li>Parameters tuned on the entire dataset</li>
+          <li>Evaluator sees the same data as the fitter</li>
+          <li>Look-ahead leakage in feature computation</li>
+          <li>Slippage, fees, funding routinely ignored</li>
+          <li>Reported Sharpe is in-sample Sharpe</li>
+        </ul>
+        <div class="result">Sharpe: 3.4 — and almost certainly a lie.</div>
+      </div>
+      <div class="card good fade-up delay-1">
+        <div class="badge accent">WALK-FORWARD</div>
+        <h3>Fit forward, evaluate forward</h3>
+        <ul>
+          <li>Parameters tuned only on the training window</li>
+          <li>Evaluator sees data the fitter never touched</li>
+          <li>Look-ahead explicitly forbidden in feature spec</li>
+          <li>Slippage, fees, funding accrued per bar</li>
+          <li>Reported Sharpe is out-of-sample Sharpe</li>
+        </ul>
+        <div class="result">Sharpe: 1.87 — and defensible.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- METHODOLOGY -->
+<section class="methodology" id="methodology">
+  <div class="container">
+    <div class="sticky-pair">
+      <div class="left">
+        <div class="section-label fade-up">
+          <span class="num">01 /</span>
+          <span>Methodology</span>
+          <span class="line"></span>
+        </div>
+        <h2 class="section-headline fade-up delay-1">Train, test,<br>roll, repeat.</h2>
+        <p class="section-sub fade-up delay-2">
+          Walk-forward optimization splits history into overlapping windows.
+          Each strategy is fit on a training window, then evaluated on the
+          forward out-of-sample window. The anchor advances, the loop repeats,
+          and OOS returns aggregate into the only equity curve that matters —
+          the one built from trades the model never saw during fitting.
+        </p>
+      </div>
+      <div class="right">
+        <div class="step fade-up">
+          <div class="index">STEP 01 — TRAIN</div>
+          <h3>Fit on the in-sample window</h3>
+          <p>
+            Parameters are calibrated across N days of historical data using
+            bounded grid search. The optimizer maximises a deflated Sharpe
+            objective that penalises parameter fragility and over-fitted
+            complexity.
+          </p>
+<div class="diagram">┌──────────────────┐
+│  TRAIN (N days)  │  fit params
+└──────────────────┘</div>
+        </div>
+        <div class="step fade-up">
+          <div class="index">STEP 02 — FORWARD TEST</div>
+          <h3>Evaluate on unseen data</h3>
+          <p>
+            Fitted parameters are frozen and applied to the next M days of
+            market data — untouched by the optimizer. Every fill, slip, and
+            funding accrual is recorded against this out-of-sample slice.
+          </p>
+<div class="diagram">┌──────────────────┬────────────┐
+│  TRAIN (N days)  │ TEST (M d) │
+└──────────────────┴────────────┘
+                   ▲ OOS slice</div>
+        </div>
+        <div class="step fade-up">
+          <div class="index">STEP 03 — ROLL ANCHOR</div>
+          <h3>Advance the window, refit</h3>
+          <p>
+            The anchor steps forward by M days. The training window shifts
+            with it, parameters are re-calibrated on the new in-sample region,
+            and the next forward test begins. No information ever leaks
+            backwards.
+          </p>
+<div class="diagram">┌──────────────────┬────────────┐
+│  TRAIN (N days)  │ TEST (M d) │
+└──────────────────┴────────────┘
+       ↓ roll
+   ┌──────────────────┬────────────┐
+   │  TRAIN (N days)  │ TEST (M d) │
+   └──────────────────┴────────────┘</div>
+        </div>
+        <div class="step fade-up">
+          <div class="index">STEP 04 — AGGREGATE</div>
+          <h3>Stitch the OOS equity curve</h3>
+          <p>
+            The contiguous sequence of forward-test returns is concatenated
+            into the live equity curve. This is the only performance record
+            reported. In-sample metrics are kept for diagnostic purposes —
+            never for presentation.
+          </p>
+<div class="diagram">[OOS₁][OOS₂][OOS₃][OOS₄] → EQUITY CURVE</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STRATEGY -->
+<section class="strategy" id="strategy">
+  <div class="container">
+    <div class="section-label fade-up">
+      <span class="num">02 /</span>
+      <span>Strategy Stack</span>
+      <span class="line"></span>
+    </div>
+    <h2 class="section-headline fade-up delay-1">Four layers, one signal path.</h2>
+    <p class="section-sub fade-up delay-2">
+      Every position passes through signal generation, risk overlay, execution
+      simulation, and validation. No layer trusts the layer before it; each
+      one re-checks the assumptions it needs to operate.
+    </p>
+    <div class="rows">
+      <div class="row fade-up">
+        <div class="num">01</div>
+        <h3>Signal Generation</h3>
+        <p>
+          Multi-factor ensemble across momentum, mean-reversion, funding-rate
+          carry, and on-chain flow. Each factor emits a directional conviction
+          score per asset; the ensemble weights are themselves walk-forward
+          validated, not hand-tuned.
+        </p>
+        <div class="tag">4 factors</div>
+      </div>
+      <div class="row fade-up">
+        <div class="num">02</div>
+        <h3>Risk Overlay</h3>
+        <p>
+          Per-asset volatility targeting, regime classification (trend / chop /
+          crisis), drawdown brakes at portfolio level, and correlation clustering
+          to prevent hidden factor concentrations from compounding in stress.
+        </p>
+        <div class="tag">12% vol target</div>
+      </div>
+      <div class="row fade-up">
+        <div class="num">03</div>
+        <h3>Execution Simulation</h3>
+        <p>
+          Tick-level slippage modeled per venue, realistic taker / maker fee
+          schedules, funding cost accrued on every perpetual position, and
+          position-level slippage curves that scale with notional.
+        </p>
+        <div class="tag">Per-venue fills</div>
+      </div>
+      <div class="row fade-up">
+        <div class="num">04</div>
+        <h3>Validation</h3>
+        <p>
+          Purged k-fold cross-validation with embargo gaps, parameter stability
+          scoring across bootstrap resamples, deflated Sharpe adjustment for
+          multiple testing, and a 3× transaction-cost stress test on every
+          reported metric.
+        </p>
+        <div class="tag">Purged k-fold</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PERFORMANCE -->
+<section class="performance" id="performance">
+  <div class="container">
+    <div class="section-label fade-up">
+      <span class="num">03 /</span>
+      <span>Out-of-Sample Performance</span>
+      <span class="line"></span>
+    </div>
+    <h2 class="section-headline fade-up delay-1">Numbers the model never saw.</h2>
+    <p class="section-sub fade-up delay-2">
+      Every metric below is computed on the contiguous out-of-sample equity
+      curve. In-sample numbers are kept in the diagnostic logs — never on this
+      page. Open the interactive dashboard for the full equity curve, drawdown
+      profile, and per-asset attribution.
+    </p>
+    <div class="grid">
+      <div class="metric fade-up">
+        <div class="label">Sharpe Ratio</div>
         <div class="value" data-counter="1.87" data-decimals="2">0.00</div>
-        <div class="delta">Annualized</div>
+        <div class="note">OOS · annualized</div>
       </div>
-      <div class="metric-card">
-        <div class="label">Sortino</div>
+      <div class="metric fade-up delay-1">
+        <div class="label">Sortino Ratio</div>
         <div class="value" data-counter="2.41" data-decimals="2">0.00</div>
-        <div class="delta">Downside-adjusted</div>
+        <div class="note">OOS · downside-adjusted</div>
       </div>
-      <div class="metric-card">
-        <div class="label">Max DD</div>
+      <div class="metric fade-up delay-2">
+        <div class="label">Calmar Ratio</div>
+        <div class="value" data-counter="2.71" data-decimals="2">0.00</div>
+        <div class="note">CAGR / Max DD</div>
+      </div>
+      <div class="metric fade-up">
+        <div class="label">Max Drawdown</div>
         <div class="value"><span data-counter="-14.2" data-decimals="1">0.0</span><span class="unit">%</span></div>
-        <div class="delta neg">Peak to Trough</div>
+        <div class="note">Peak-to-trough · OOS</div>
       </div>
-      <div class="metric-card">
+      <div class="metric fade-up delay-1">
         <div class="label">CAGR</div>
         <div class="value"><span data-counter="38.4" data-decimals="1">0.0</span><span class="unit">%</span></div>
-        <div class="delta">Compound Annual</div>
+        <div class="note">Compound annual · OOS</div>
       </div>
-      <div class="metric-card">
-        <div class="label">Win Rate</div>
-        <div class="value"><span data-counter="54.2" data-decimals="1">0.0</span><span class="unit">%</span></div>
-        <div class="delta">1,247 trades</div>
-      </div>
-      <div class="metric-card">
+      <div class="metric fade-up delay-2">
         <div class="label">Profit Factor</div>
         <div class="value" data-counter="1.94" data-decimals="2">0.00</div>
-        <div class="delta">Gross / Loss</div>
+        <div class="note">Gross profit / loss</div>
       </div>
     </div>
-
-    <!-- Equity Curve -->
-    <div class="chart-block fade-up">
-      <div class="chart-head">
-        <h2>OOS Equity Curve</h2>
-        <div class="legend">
-          <span><span class="dot amber"></span> Strategy</span>
-          <span><span class="dot soft"></span> Buy & Hold (BTC)</span>
-        </div>
+    <div class="cta-row fade-up">
+      <div class="copy">
+        <h4>Full equity curve, drawdown, and per-asset attribution</h4>
+        <p>The interactive dashboard exposes the full OOS equity curve, rolling drawdown, monthly returns heatmap, and per-asset contribution.</p>
       </div>
-      <canvas id="equityChart" class="chart"></canvas>
+      <a href="./dashboard.html" class="button">
+        <span>Open dashboard</span>
+        <span>→</span>
+      </a>
     </div>
-
-    <!-- Drawdown -->
-    <div class="chart-block fade-up">
-      <div class="chart-head">
-        <h2>Underwater Drawdown</h2>
-        <div class="legend">
-          <span><span class="dot amber"></span> Drawdown %</span>
-        </div>
-      </div>
-      <canvas id="drawdownChart" class="chart" style="height: 280px;"></canvas>
-    </div>
-
-    <!-- Monthly Heatmap -->
-    <div class="chart-block fade-up">
-      <div class="chart-head">
-        <h2>Monthly Returns Distribution</h2>
-        <div class="legend">
-          <span style="color: var(--text-mute);">Hover for exact return</span>
-        </div>
-      </div>
-      <div class="heatmap-wrapper">
-        <div class="heatmap" id="heatmap">
-          <!-- Generated via JS -->
-        </div>
-      </div>
-    </div>
-
-    <!-- Per-Asset Attribution -->
-    <div class="chart-block fade-up">
-      <div class="chart-head">
-        <h2>Per-Asset Attribution</h2>
-        <div class="legend">
-          <span>Net PnL Contribution</span>
-        </div>
-      </div>
-      <div class="table-wrapper">
-        <table class="attrs">
-          <thead>
-            <tr>
-              <th>Asset</th>
-              <th>Trades</th>
-              <th>Win Rate</th>
-              <th>Net PnL (USD)</th>
-              <th>Sharpe</th>
-              <th>Max DD</th>
-              <th>Profit Factor</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td class="asset">BTC</td>
-              <td>312</td>
-              <td>56.4%</td>
-              <td class="pos">+$184,220</td>
-              <td>2.12</td>
-              <td class="neg">-11.2%</td>
-              <td>2.04</td>
-            </tr>
-            <tr>
-              <td class="asset">ETH</td>
-              <td>284</td>
-              <td>55.1%</td>
-              <td class="pos">+$142,500</td>
-              <td>1.89</td>
-              <td class="neg">-14.8%</td>
-              <td>1.87</td>
-            </tr>
-            <tr>
-              <td class="asset">SOL</td>
-              <td>245</td>
-              <td>52.3%</td>
-              <td class="pos">+$98,300</td>
-              <td>1.65</td>
-              <td class="neg">-22.4%</td>
-              <td>1.62</td>
-            </tr>
-            <tr>
-              <td class="asset">AVAX</td>
-              <td>221</td>
-              <td>51.2%</td>
-              <td class="pos">+$64,100</td>
-              <td>1.42</td>
-              <td class="neg">-28.1%</td>
-              <td>1.44</td>
-            </tr>
-            <tr>
-              <td class="asset">LINK</td>
-              <td>185</td>
-              <td>52.8%</td>
-              <td class="neg">-$12,400</td>
-              <td>-0.24</td>
-              <td class="neg">-18.2%</td>
-              <td>0.92</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Recent Trade Log -->
-    <div class="chart-block fade-up">
-      <div class="chart-head">
-        <h2>Recent OOS Trades</h2>
-        <div class="legend">
-          <span>Last 8 executed positions</span>
-        </div>
-      </div>
-      <div class="trade-log">
-        <div class="row head">
-          <div>Timestamp</div>
-          <div>Asset</div>
-          <div>Side</div>
-          <div>Entry</div>
-          <div>Exit</div>
-          <div>Return</div>
-          <div>Duration</div>
-        </div>
-        <div class="row">
-          <div>2024.08.12 14:32</div>
-          <div>BTC</div>
-          <div><span class="tag long">LONG</span></div>
-          <div>61,240</div>
-          <div>62,580</div>
-          <div class="ret pos">+2.18%</div>
-          <div>14h 12m</div>
-        </div>
-        <div class="row">
-          <div>2024.08.11 09:15</div>
-          <div>ETH</div>
-          <div><span class="tag short">SHORT</span></div>
-          <div>2,840</div>
-          <div>2,910</div>
-          <div class="ret neg">-2.46%</div>
-          <div>8h 45m</div>
-        </div>
-        <div class="row">
-          <div>2024.08.10 22:08</div>
-          <div>SOL</div>
-          <div><span class="tag long">LONG</span></div>
-          <div>142.2</div>
-          <div>148.9</div>
-          <div class="ret pos">+4.71%</div>
-          <div>22h 30m</div>
-        </div>
-        <div class="row">
-          <div>2024.08.09 11:20</div>
-          <div>AVAX</div>
-          <div><span class="tag short">SHORT</span></div>
-          <div>32.1</div>
-          <div>30.8</div>
-          <div class="ret pos">+4.05%</div>
-          <div>12h 10m</div>
-        </div>
-        <div class="row">
-          <div>2024.08.08 18:45</div>
-          <div>LINK</div>
-          <div><span class="tag long">LONG</span></div>
-          <div>14.2</div>
-          <div>13.9</div>
-          <div class="ret neg">-2.11%</div>
-          <div>4h 05m</div>
-        </div>
-        <div class="row">
-          <div>2024.08.07 06:30</div>
-          <div>BTC</div>
-          <div><span class="tag long">LONG</span></div>
-          <div>58,400</div>
-          <div>59,920</div>
-          <div class="ret pos">+2.60%</div>
-          <div>16h 45m</div>
-        </div>
-        <div class="row">
-          <div>2024.08.06 14:12</div>
-          <div>ETH</div>
-          <div><span class="tag short">SHORT</span></div>
-          <div>2,910</div>
-          <div>2,820</div>
-          <div class="ret pos">+3.09%</div>
-          <div>10h 20m</div>
-        </div>
-        <div class="row">
-          <div>2024.08.05 09:05</div>
-          <div>SOL</div>
-          <div><span class="tag short">SHORT</span></div>
-          <div>148.5</div>
-          <div>152.1</div>
-          <div class="ret neg">-2.42%</div>
-          <div>6h 15m</div>
-        </div>
-      </div>
-    </div>
-
   </div>
 </section>
 
+<!-- ENGINEERING -->
+<section class="tech">
+  <div class="container">
+    <div class="section-label fade-up">
+      <span class="num">04 /</span>
+      <span>Engineering</span>
+      <span class="line"></span>
+    </div>
+    <h2 class="section-headline fade-up delay-1">Reproducible from<br>a single command.</h2>
+    <p class="section-sub fade-up delay-2">
+      Every result on this page is reproducible from a clean clone. The
+      pipeline is deterministic, the data is fetched and cached locally, and
+      CI runs the full regression suite on every commit.
+    </p>
+
+    <div class="pipeline fade-up">
+      <div class="pipeline-head">
+        <span class="dot red"></span>
+        <span class="dot yellow"></span>
+        <span class="dot green"></span>
+        <span class="path">~/walk-forward-crypto</span>
+      </div>
+<pre><code><span class="comment"># Fetch data, fit, walk-forward, render</span>
+<span class="cmd">python</span> -m wf.main \
+    <span class="flag">--universe</span>      <span class="str">"BTC,ETH,SOL,AVAX,LINK"</span> \
+    <span class="flag">--train-window</span>  <span class="num">180d</span> \
+    <span class="flag">--test-window</span>   <span class="num">30d</span> \
+    <span class="flag">--report</span>        <span class="str">"./docs/interactive/dashboard.html"</span>
+
+<span class="comment"># → 1,247 OOS trades aggregated across 41 walk-forward windows</span>
+<span class="comment"># → Sharpe 1.87 · MaxDD -14.2% · CAGR 38.4%</span>
+<span class="comment"># → Dashboard written to docs/interactive/dashboard.html</span></code></pre>
+    </div>
+
+    <div class="grid">
+      <div class="cell fade-up">
+        <div class="name">Python 3.11</div>
+        <div class="role">Core runtime, typed end-to-end</div>
+      </div>
+      <div class="cell fade-up delay-1">
+        <div class="name">pandas · NumPy</div>
+        <div class="role">Vectorised signal + return math</div>
+      </div>
+      <div class="cell fade-up delay-2">
+        <div class="name">ccxt</div>
+        <div class="role">Exchange connectivity, OHLCV sync</div>
+      </div>
+      <div class="cell fade-up delay-3">
+        <div class="name">vectorbt</div>
+        <div class="role">Backtest engine, parameter sweeps</div>
+      </div>
+      <div class="cell fade-up">
+        <div class="name">scikit-learn</div>
+        <div class="role">Regime classification, k-fold CV</div>
+      </div>
+      <div class="cell fade-up delay-1">
+        <div class="name">Plotly</div>
+        <div class="role">Interactive equity + drawdown charts</div>
+      </div>
+      <div class="cell fade-up delay-2">
+        <div class="name">pytest</div>
+        <div class="role">Regression suite, fixture-based</div>
+      </div>
+      <div class="cell fade-up delay-3">
+        <div class="name">GitHub Actions</div>
+        <div class="role">CI on every commit + nightly WFO run</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RISK -->
+<section class="risk" id="risk">
+  <div class="container">
+    <div class="section-label fade-up">
+      <span class="num">05 /</span>
+      <span>Risk Framework</span>
+      <span class="line"></span>
+    </div>
+    <h2 class="section-headline fade-up delay-1">Survival first,<br>alpha second.</h2>
+    <p class="section-sub fade-up delay-2">
+      The framework is built around the assumption that the only thing worse
+      than missing an edge is doubling down on a false one. Every risk control
+      below is enforced before any performance number is reported.
+    </p>
+    <div class="grid">
+      <div class="item fade-up">
+        <div class="label">01 — Per-asset vol cap</div>
+        <h4>Target 12% annualised volatility per asset</h4>
+        <p>Position size is inverse-scaled to recent realised volatility. A coin that just expanded its range gets a smaller slice of notional, not a larger one.</p>
+      </div>
+      <div class="item fade-up delay-1">
+        <div class="label">02 — Portfolio drawdown brake</div>
+        <h4>Reduce exposure when weekly drawdown exceeds 8%</h4>
+        <p>A rolling drawdown trigger de-risks the book by 50% until the equity curve prints a new high. Re-engagement is gradual, never a single-step reload.</p>
+      </div>
+      <div class="item fade-up">
+        <div class="label">03 — Regime-aware sizing</div>
+        <h4>Crisis-state exposure cuts to 30% of baseline</h4>
+        <p>A trained regime classifier tags every bar as trend, chop, or crisis. In crisis state, gross exposure is cut and only the most stable factors keep their allocation.</p>
+      </div>
+      <div class="item fade-up delay-1">
+        <div class="label">04 — Cost sensitivity stress</div>
+        <h4>Reported metrics survive 3× transaction cost</h4>
+        <p>Every reported Sharpe, drawdown, and CAGR must survive a 3× multiplier on slippage and fees. If the edge disappears under stress, it is not reported as an edge.</p>
+      </div>
+      <div class="item fade-up">
+        <div class="label">05 — Parameter stability</div>
+        <h4>Bootstrap resample must confirm parameter region</h4>
+        <p>The optimizer's chosen parameters must sit inside a stable plateau, not a narrow peak. Parameters selected on a knife-edge are rejected before they reach the live curve.</p>
+      </div>
+      <div class="item fade-up delay-1">
+        <div class="label">06 — No look-ahead guarantees</div>
+        <h4>Purged k-fold with embargo gaps</h4>
+        <p>Cross-validation folds are purged around the test window and separated by an embargo gap. The framework explicitly forbids any feature whose computation could peek into the future.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="brand-block">
+      <div class="mark">
+        <span class="dot"></span>
+        <span>WF·CRYPTO</span>
+      </div>
+      <p>
+        An open research framework for walk-forward optimization in crypto
+        markets. Built by Tomi Seregi. Source code, full methodology, and
+        reproducible pipeline available on GitHub.
+      </p>
+    </div>
+    <div class="col">
+      <h5>Navigate</h5>
+      <ul>
+        <li><a href="#problem">Problem</a></li>
+        <li><a href="#methodology">Methodology</a></li>
+        <li><a href="#strategy">Strategy stack</a></li>
+        <li><a href="#performance">Performance</a></li>
+        <li><a href="#risk">Risk framework</a></li>
+      </ul>
+    </div>
+    <div class="col">
+      <h5>Resources</h5>
+      <ul>
+        <li><a href="./dashboard.html">Equity dashboard</a></li>
+        <li><a href="https://github.com/AKzar1el/walk-forward-crypto" target="_blank" rel="noopener">GitHub repository</a></li>
+        <li><a href="https://tomiseregi.si/projects/alpha-sentient" target="_blank" rel="noopener">Project page</a></li>
+      </ul>
+    </div>
+    <div class="col">
+      <h5>Author</h5>
+      <ul>
+        <li><a href="https://tomiseregi.si" target="_blank" rel="noopener">Tomi Seregi</a></li>
+        <li><a href="https://github.com/AKzar1el" target="_blank" rel="noopener">AKzar1el @ GitHub</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="bottom container">
+    <div>© 2025 · Walk-Forward Crypto · MIT License</div>
+    <div class="disclaimer">Not financial advice · Past OOS performance ≠ future returns</div>
+  </div>
+</footer>
+
 <script>
+/* ---------- Glyph rain (subtle background) ---------- */
+(function() {
+  const cvs = document.querySelector('canvas.rain');
+  if (!cvs) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    cvs.style.display = 'none';
+    return;
+  }
+
+  const ctx = cvs.getContext('2d');
+  const resize = () => {
+    cvs.width = window.innerWidth;
+    cvs.height = window.innerHeight;
+  };
+  window.addEventListener('resize', resize);
+  resize();
+
+  const COL_W = 22;
+  let cols = Math.floor(cvs.width / COL_W);
+  let drops = Array.from({ length: cols }, () => Math.random() * -cvs.height);
+  const CHARS = 'ABCDEF0123456789·+-=<>[]{}';
+
+  let running = true;
+  document.addEventListener('visibilitychange', () => {
+    running = !document.hidden;
+    if (running) requestAnimationFrame(frame);
+  });
+
+  function frame() {
+    if (!running) return;
+    ctx.fillStyle = 'rgba(10,10,10,0.07)';
+    ctx.fillRect(0, 0, cvs.width, cvs.height);
+    ctx.font = '13px "JetBrains Mono", monospace';
+    for (let i = 0; i < cols; i++) {
+      const x = i * COL_W;
+      const y = drops[i];
+      const bright = Math.random() < 0.018;
+      ctx.fillStyle = bright
+        ? 'rgba(255,220,170,0.95)'
+        : 'rgba(200,170,130,0.78)';
+      ctx.fillText(
+        CHARS[Math.floor(Math.random() * CHARS.length)],
+        x, y
+      );
+      drops[i] = y > cvs.height && Math.random() > 0.975
+        ? 0
+        : y + 12;
+    }
+    requestAnimationFrame(frame);
+  }
+  frame();
+
+  window.addEventListener('resize', () => {
+    cols = Math.floor(cvs.width / COL_W);
+    drops = Array.from({ length: cols }, () => Math.random() * -cvs.height);
+  });
+})();
+
+/* ---------- Hero scramble decode ---------- */
+(function() {
+  const TARGET = 'WALK-FORWARD EDGE';
+  const CHARS = '!<>-_\\/[]{}—=+*^?#________01ABCDEF';
+  const el = document.getElementById('hero-title');
+  if (!el) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    el.textContent = TARGET;
+    return;
+  }
+
+  let iter = 0;
+  const max = TARGET.length * 8;
+  el.classList.add('is-decoding');
+  el.textContent = '';
+
+  function tick() {
+    el.textContent = TARGET.split('').map((ch, i) => {
+      if (i < iter / 8) return TARGET[i];
+      return CHARS[Math.floor(Math.random() * CHARS.length)];
+    }).join('');
+    iter += 1;
+    if (iter >= max) {
+      el.textContent = TARGET;
+      el.classList.remove('is-decoding');
+      return;
+    }
+    setTimeout(tick, 42);
+  }
+  setTimeout(tick, 350);
+})();
+
 /* ---------- Fade-up on scroll ---------- */
 (function() {
   const els = document.querySelectorAll('.fade-up');
@@ -813,6 +1670,7 @@ table.attrs td.neg { color: var(--red); }
         function step(now) {
           const elapsed = now - start;
           const t = Math.min(1, elapsed / duration);
+          // easeOutExpo
           const eased = t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
           const val = target * eased;
           el.textContent = val.toFixed(decimals);
@@ -828,234 +1686,18 @@ table.attrs td.neg { color: var(--red); }
   counters.forEach((c) => io.observe(c));
 })();
 
-/* ---------- Heatmap Generator ---------- */
+/* ---------- Smooth anchor scroll offset for fixed nav ---------- */
 (function() {
-  const grid = document.getElementById('heatmap');
-  if (!grid) return;
-  
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const years = ['2021', '2022', '2023', '2024'];
-  
-  let html = '<div class="cell head"></div>';
-  months.forEach(m => html += `<div class="cell head">${m}</div>`);
-  
-  years.forEach(year => {
-    html += `<div class="cell year">${year}</div>`;
-    months.forEach((m, idx) => {
-      // Simulate realistic random returns with slight positive drift
-      let val = (Math.random() * 24 - 10).toFixed(1);
-      let cls = '';
-      let v = parseFloat(val);
-      
-      if (v > 15) cls = 'pos-3';
-      else if (v > 8) cls = 'pos-2';
-      else if (v > 0) cls = 'pos';
-      else if (v < -8) cls = 'neg-3';
-      else if (v < -4) cls = 'neg-2';
-      else if (v < 0) cls = 'neg';
-      
-      // Don't show future months for 2024
-      if (year === '2024' && idx > 6) {
-        html += `<div class="cell"></div>`;
-      } else {
-        html += `<div class="cell ${cls}" title="${m} ${year}: ${val}%">${val}%</div>`;
-      }
+  document.querySelectorAll('a[href^="#"]').forEach((a) => {
+    a.addEventListener('click', (e) => {
+      const id = a.getAttribute('href');
+      if (id.length < 2) return;
+      const target = document.querySelector(id);
+      if (!target) return;
+      e.preventDefault();
+      const top = target.getBoundingClientRect().top + window.pageYOffset - 80;
+      window.scrollTo({ top, behavior: 'smooth' });
     });
-  });
-  
-  grid.innerHTML = html;
-})();
-
-/* ---------- Canvas Charting ---------- */
-(function() {
-  function setupCanvas(canvas) {
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    const ctx = canvas.getContext('2d');
-    ctx.scale(dpr, dpr);
-    return { ctx, w: rect.width, h: rect.height };
-  }
-
-  // Generate dummy but realistic equity data
-  function genEquityData(points = 250) {
-    let strat = 100000;
-    let btc = 100000;
-    let stratData = [];
-    let btcData = [];
-    let peak = 100000;
-    let ddData = [];
-    
-    for (let i = 0; i < points; i++) {
-      // BTC random walk
-      let btcChange = (Math.random() - 0.45) * 0.02;
-      btc += btc * btcChange;
-      btcData.push(btc);
-      
-      // Strategy outperforming BTC with lower vol
-      let stratChange = (Math.random() - 0.42) * 0.015;
-      strat += strat * stratChange;
-      stratData.push(strat);
-      
-      // Drawdown calc
-      if (strat > peak) peak = strat;
-      let dd = ((strat - peak) / peak) * 100;
-      ddData.push(dd);
-    }
-    return { stratData, btcData, ddData };
-  }
-
-  function drawEquityChart() {
-    const canvas = document.getElementById('equityChart');
-    if (!canvas) return;
-    const { ctx, w, h } = setupCanvas(canvas);
-    const data = genEquityData(300);
-    
-    ctx.clearRect(0, 0, w, h);
-    
-    const padding = { top: 20, right: 40, bottom: 30, left: 60 };
-    const cw = w - padding.left - padding.right;
-    const ch = h - padding.top - padding.bottom;
-    
-    const allVals = [...data.stratData, ...data.btcData];
-    const minVal = Math.min(...allVals) * 0.95;
-    const maxVal = Math.max(...allVals) * 1.05;
-    
-    // Grid lines
-    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= 4; i++) {
-      let y = padding.top + (ch / 4) * i;
-      ctx.beginPath();
-      ctx.moveTo(padding.left, y);
-      ctx.lineTo(w - padding.right, y);
-      ctx.stroke();
-      
-      let val = maxVal - ((maxVal - minVal) / 4) * i;
-      ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      ctx.font = '10px "JetBrains Mono", monospace';
-      ctx.textAlign = 'right';
-      ctx.fillText('$' + (val / 1000).toFixed(1) + 'k', padding.left - 10, y + 3);
-    }
-    
-    // BTC (Soft line)
-    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    data.btcData.forEach((val, i) => {
-      let x = padding.left + (cw / (data.btcData.length - 1)) * i;
-      let y = padding.top + ch - ((val - minVal) / (maxVal - minVal)) * ch;
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-    
-    // Strategy Fill
-    const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + ch);
-    gradient.addColorStop(0, 'rgba(200,170,130,0.2)');
-    gradient.addColorStop(1, 'rgba(200,170,130,0)');
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.moveTo(padding.left, padding.top + ch);
-    data.stratData.forEach((val, i) => {
-      let x = padding.left + (cw / (data.stratData.length - 1)) * i;
-      let y = padding.top + ch - ((val - minVal) / (maxVal - minVal)) * ch;
-      ctx.lineTo(x, y);
-    });
-    ctx.lineTo(padding.left + cw, padding.top + ch);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Strategy Line
-    ctx.strokeStyle = 'rgba(200,170,130,1)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    data.stratData.forEach((val, i) => {
-      let x = padding.left + (cw / (data.stratData.length - 1)) * i;
-      let y = padding.top + ch - ((val - minVal) / (maxVal - minVal)) * ch;
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-  }
-
-  function drawDrawdownChart() {
-    const canvas = document.getElementById('drawdownChart');
-    if (!canvas) return;
-    const { ctx, w, h } = setupCanvas(canvas);
-    
-    // Reuse same data shape
-    const data = genEquityData(300).ddData;
-    
-    ctx.clearRect(0, 0, w, h);
-    
-    const padding = { top: 20, right: 40, bottom: 30, left: 60 };
-    const cw = w - padding.left - padding.right;
-    const ch = h - padding.top - padding.bottom;
-    
-    const minVal = Math.min(...data) * 1.1;
-    const maxVal = 0;
-    
-    // Grid
-    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= 4; i++) {
-      let y = padding.top + (ch / 4) * i;
-      ctx.beginPath();
-      ctx.moveTo(padding.left, y);
-      ctx.lineTo(w - padding.right, y);
-      ctx.stroke();
-      
-      let val = maxVal - ((maxVal - minVal) / 4) * i;
-      ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      ctx.font = '10px "JetBrains Mono", monospace';
-      ctx.textAlign = 'right';
-      ctx.fillText(val.toFixed(1) + '%', padding.left - 10, y + 3);
-    }
-    
-    // Fill (going UP from bottom because it's negative space)
-    const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + ch);
-    gradient.addColorStop(0, 'rgba(220,80,80,0.4)');
-    gradient.addColorStop(1, 'rgba(220,80,80,0)');
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.moveTo(padding.left, padding.top); // Start top left
-    data.forEach((val, i) => {
-      let x = padding.left + (cw / (data.length - 1)) * i;
-      // val is negative, mapping it to the chart space (0 is top, min is bottom)
-      let y = padding.top - ((val - maxVal) / (minVal - maxVal)) * ch;
-      ctx.lineTo(x, y);
-    });
-    ctx.lineTo(padding.left + cw, padding.top);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Line
-    ctx.strokeStyle = 'rgba(220,80,80,0.9)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    data.forEach((val, i) => {
-      let x = padding.left + (cw / (data.length - 1)) * i;
-      let y = padding.top - ((val - maxVal) / (minVal - maxVal)) * ch;
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-  }
-
-  // Initial draw
-  drawEquityChart();
-  drawDrawdownChart();
-  
-  // Redraw on resize
-  let resizeTimer;
-  window.addEventListener('resize', () => {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => {
-      drawEquityChart();
-      drawDrawdownChart();
-    }, 250);
   });
 })();
 </script>
