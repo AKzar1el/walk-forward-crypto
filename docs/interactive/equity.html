@@ -1,47 +1,1063 @@
-﻿<!DOCTYPE html>
-<html><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Walk-forward system — interactive results</title>
-<script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
-<style>body{margin:0;background:#0d1117;color:#e6edf3;
-font-family:system-ui,sans-serif} .note{font-size:12px;color:#8b949e;
-padding:6px 12px}</style></head><body>
-<div id="eq" style="width:100%;height:42vh"></div>
-<div id="dd" style="width:100%;height:22vh"></div>
-<div id="rib" style="width:100%;height:30vh"></div>
-<div class="note">Paper-trading research. 2026 is the development period.
-Educational only — not investment advice.</div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Walk-Forward Crypto — OOS Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700;800;900&display=swap">
+<style>
+:root {
+  --bg: #0a0a0a;
+  --bg-soft: #111111;
+  --bg-card: #0d0d0d;
+  --text: #ffffff;
+  --text-soft: #dadada;
+  --text-dim: #8a8a8a;
+  --text-mute: #5a5a5a;
+  --accent: rgba(200,170,130,1);
+  --accent-soft: rgba(200,170,130,0.25);
+  --accent-dim: rgba(200,170,130,0.08);
+  --green: rgba(100, 200, 120, 0.9);
+  --red: rgba(220, 80, 80, 0.9);
+  --line: rgba(255,255,255,0.10);
+  --line-soft: rgba(255,255,255,0.06);
+  --ease-quiet: cubic-bezier(.22, 1, .36, 1);
+  --ease-precise: cubic-bezier(.4, 0, .2, 1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 400;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+::selection { background: var(--accent); color: var(--bg); }
+
+/* Navigation */
+nav.top {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 2.5rem;
+  background: rgba(10,10,10,0.85);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+nav .brand {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+nav .brand .mark {
+  width: 8px; height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 12px var(--accent-soft);
+}
+
+nav .breadcrumb {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+nav .breadcrumb a {
+  color: var(--text-dim);
+  text-decoration: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  transition: color 400ms var(--ease-quiet);
+}
+
+nav .breadcrumb a:hover { color: var(--text); }
+nav .breadcrumb span { color: var(--text-mute); font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
+
+nav .cta {
+  display: flex;
+  gap: 0.85rem;
+  align-items: center;
+}
+
+nav .cta a.button {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--bg);
+  background: var(--accent);
+  padding: 0.65rem 1.25rem;
+  text-decoration: none;
+  border-radius: 2px;
+  transition: all 400ms var(--ease-quiet);
+  font-weight: 700;
+}
+
+nav .cta a.button:hover {
+  background: var(--text);
+  transform: translateY(-1px);
+}
+
+/* Section base */
+section {
+  position: relative;
+  z-index: 1;
+  padding: 8rem 2.5rem 4rem;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Dashboard Header */
+.dash-header {
+  padding-top: 7rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 3rem;
+}
+
+.dash-header .meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.dash-header h1 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 800;
+  font-size: clamp(2rem, 4.5vw, 3.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.028em;
+  margin-bottom: 1.5rem;
+}
+
+.dash-header .info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+  margin-top: 3rem;
+}
+
+.dash-header .info-item .label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 0.5rem;
+}
+
+.dash-header .info-item .val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.95rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* Metrics Grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1px;
+  background: var(--line-soft);
+  border-top: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--line-soft);
+  margin-bottom: 5rem;
+}
+
+.metric-card {
+  background: var(--bg);
+  padding: 2rem 1.5rem;
+  transition: background 400ms var(--ease-quiet);
+}
+
+.metric-card:hover { background: var(--bg-soft); }
+
+.metric-card .label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 1rem;
+}
+
+.metric-card .value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.metric-card .value .unit {
+  font-size: 0.9rem;
+  color: var(--accent);
+  font-weight: 400;
+  margin-left: 0.25rem;
+}
+
+.metric-card .delta {
+  margin-top: 0.85rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--green);
+}
+
+.metric-card .delta.neg { color: var(--red); }
+
+/* Chart Containers */
+.chart-block {
+  margin-bottom: 5rem;
+}
+
+.chart-block .chart-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 1.25rem;
+}
+
+.chart-block .chart-head h2 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 1.5rem;
+  letter-spacing: -0.015em;
+}
+
+.chart-block .chart-head .legend {
+  display: flex;
+  gap: 1.5rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.chart-block .chart-head .legend span {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.chart-block .chart-head .legend .dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+}
+
+.chart-block .chart-head .legend .dot.amber { background: var(--accent); }
+.chart-block .chart-head .legend .dot.soft { background: rgba(255,255,255,0.2); }
+
+canvas.chart {
+  width: 100%;
+  height: 420px;
+  display: block;
+}
+
+/* Heatmap */
+.heatmap-wrapper {
+  overflow-x: auto;
+  padding-bottom: 1rem;
+}
+
+.heatmap {
+  display: grid;
+  grid-template-columns: 60px repeat(12, 1fr);
+  gap: 2px;
+  min-width: 800px;
+}
+
+.heatmap .cell {
+  background: var(--bg-card);
+  padding: 1rem 0.5rem;
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  border-radius: 2px;
+  transition: transform 300ms var(--ease-quiet);
+}
+
+.heatmap .cell.head {
+  color: var(--text-mute);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: transparent;
+}
+
+.heatmap .cell.year {
+  color: var(--text-soft);
+  background: transparent;
+  text-align: left;
+  padding-left: 0;
+  font-weight: 700;
+}
+
+.heatmap .cell.pos { background: rgba(200,170,130,0.15); color: var(--accent); }
+.heatmap .cell.pos-2 { background: rgba(200,170,130,0.35); color: var(--accent); }
+.heatmap .cell.pos-3 { background: rgba(200,170,130,0.60); color: var(--bg); font-weight: 700; }
+.heatmap .cell.neg { background: rgba(220,80,80,0.15); color: var(--red); }
+.heatmap .cell.neg-2 { background: rgba(220,80,80,0.35); color: var(--red); }
+.heatmap .cell.neg-3 { background: rgba(220,80,80,0.55); color: #fff; font-weight: 700; }
+
+.heatmap .cell:hover { transform: scale(1.1); z-index: 10; border: 1px solid var(--text); }
+
+/* Attribution Table */
+.table-wrapper {
+  border: 1px solid var(--line-soft);
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+table.attrs {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+}
+
+table.attrs th {
+  text-align: left;
+  padding: 1.25rem 1.5rem;
+  background: rgba(255,255,255,0.025);
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 500;
+  border-bottom: 1px solid var(--line);
+}
+
+table.attrs td {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--text-soft);
+}
+
+table.attrs tr:last-child td { border-bottom: none; }
+
+table.attrs tr {
+  transition: background 300ms var(--ease-quiet);
+}
+
+table.attrs tbody tr:hover { background: rgba(255,255,255,0.02); }
+
+table.attrs td.asset { color: var(--text); font-weight: 700; }
+table.attrs td.pos { color: var(--green); }
+table.attrs td.neg { color: var(--red); }
+
+/* Trade Log */
+.trade-log {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.trade-log::-webkit-scrollbar { width: 6px; }
+.trade-log::-webkit-scrollbar-track { background: transparent; }
+.trade-log::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+
+.trade-log .row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1.5fr 1fr 1fr;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--line-soft);
+  gap: 1rem;
+  align-items: center;
+}
+
+.trade-log .row:last-child { border-bottom: none; }
+.trade-log .row.head { 
+  background: rgba(255,255,255,0.025); 
+  color: var(--text-mute); 
+  font-size: 0.7rem; 
+  letter-spacing: 0.15em; 
+  text-transform: uppercase;
+  position: sticky;
+  top: 0;
+}
+
+.trade-log .row .tag {
+  padding: 0.2rem 0.5rem;
+  border-radius: 2px;
+  font-size: 0.7rem;
+  text-align: center;
+}
+
+.trade-log .row .tag.long { background: rgba(100,200,120,0.15); color: var(--green); }
+.trade-log .row .tag.short { background: rgba(220,80,80,0.15); color: var(--red); }
+
+.trade-log .row .ret.pos { color: var(--green); }
+.trade-log .row .ret.neg { color: var(--red); }
+
+/* Fade-up animation */
+.fade-up {
+  opacity: 0;
+  transform: translateY(36px);
+  transition: opacity 1100ms var(--ease-quiet), transform 1100ms var(--ease-quiet);
+  will-change: transform, opacity;
+}
+
+.fade-up.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  nav .breadcrumb { display: none; }
+  nav.top { padding: 1rem 1.5rem; }
+  
+  .dash-header .info-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+  
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .trade-log .row {
+    grid-template-columns: 1fr 1fr 1fr;
+    font-size: 0.75rem;
+  }
+  .trade-log .row > *:nth-child(4),
+  .trade-log .row > *:nth-child(5),
+  .trade-log .row > *:nth-child(6),
+  .trade-log .row > *:nth-child(7) {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  section { padding: 6rem 1.5rem 3rem; }
+  .dash-header { padding-top: 6rem; }
+  .dash-header .info-grid { grid-template-columns: 1fr; }
+  .metrics-grid { grid-template-columns: 1fr; }
+  canvas.chart { height: 300px; }
+  table.attrs { font-size: 0.75rem; }
+  table.attrs th, table.attrs td { padding: 1rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+  .fade-up { opacity: 1; transform: none; }
+}
+</style>
+</head>
+<body>
+
+<nav class="top">
+  <a href="./equity.html" class="brand">
+    <span class="mark"></span>
+    <span>WF·CRYPTO</span>
+  </a>
+  <div class="breadcrumb">
+    <a href="./equity.html">Overview</a>
+    <span>/</span>
+    <a href="./dashboard.html">OOS Dashboard</a>
+  </div>
+  <div class="cta">
+    <a href="https://github.com/AKzar1el/walk-forward-crypto" target="_blank" rel="noopener" class="button">View Repo →</a>
+  </div>
+</nav>
+
+<section class="dash-header">
+  <div class="container">
+    <div class="meta fade-up">
+      <span>OOS REPORT · 2021.01.04 → 2024.08.12</span>
+    </div>
+    <h1 class="fade-up delay-1">Out-of-Sample<br>Performance Dashboard</h1>
+    <p class="fade-up delay-2" style="max-width: 640px; color: var(--text-soft); font-size: 1.1rem;">
+      All metrics below are aggregated from 41 walk-forward test windows. 
+      No data point in this dashboard was seen by the optimizer during parameter fitting.
+    </p>
+    
+    <div class="info-grid fade-up delay-3">
+      <div class="info-item">
+        <div class="label">Universe</div>
+        <div class="val">BTC, ETH, SOL, AVAX, LINK</div>
+      </div>
+      <div class="info-item">
+        <div class="label">Window Config</div>
+        <div class="val">180d Train / 30d Test</div>
+      </div>
+      <div class="info-item">
+        <div class="label">Total OOS Trades</div>
+        <div class="val">1,247</div>
+      </div>
+      <div class="info-item">
+        <div class="label">Generated</div>
+        <div class="val">2024.08.12 14:32 UTC</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top: 4rem;">
+  <div class="container">
+    <!-- Key Metrics -->
+    <div class="metrics-grid fade-up">
+      <div class="metric-card">
+        <div class="label">Net Sharpe</div>
+        <div class="value" data-counter="1.87" data-decimals="2">0.00</div>
+        <div class="delta">Annualized</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Sortino</div>
+        <div class="value" data-counter="2.41" data-decimals="2">0.00</div>
+        <div class="delta">Downside-adjusted</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Max DD</div>
+        <div class="value"><span data-counter="-14.2" data-decimals="1">0.0</span><span class="unit">%</span></div>
+        <div class="delta neg">Peak to Trough</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">CAGR</div>
+        <div class="value"><span data-counter="38.4" data-decimals="1">0.0</span><span class="unit">%</span></div>
+        <div class="delta">Compound Annual</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Win Rate</div>
+        <div class="value"><span data-counter="54.2" data-decimals="1">0.0</span><span class="unit">%</span></div>
+        <div class="delta">1,247 trades</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Profit Factor</div>
+        <div class="value" data-counter="1.94" data-decimals="2">0.00</div>
+        <div class="delta">Gross / Loss</div>
+      </div>
+    </div>
+
+    <!-- Equity Curve -->
+    <div class="chart-block fade-up">
+      <div class="chart-head">
+        <h2>OOS Equity Curve</h2>
+        <div class="legend">
+          <span><span class="dot amber"></span> Strategy</span>
+          <span><span class="dot soft"></span> Buy & Hold (BTC)</span>
+        </div>
+      </div>
+      <canvas id="equityChart" class="chart"></canvas>
+    </div>
+
+    <!-- Drawdown -->
+    <div class="chart-block fade-up">
+      <div class="chart-head">
+        <h2>Underwater Drawdown</h2>
+        <div class="legend">
+          <span><span class="dot amber"></span> Drawdown %</span>
+        </div>
+      </div>
+      <canvas id="drawdownChart" class="chart" style="height: 280px;"></canvas>
+    </div>
+
+    <!-- Monthly Heatmap -->
+    <div class="chart-block fade-up">
+      <div class="chart-head">
+        <h2>Monthly Returns Distribution</h2>
+        <div class="legend">
+          <span style="color: var(--text-mute);">Hover for exact return</span>
+        </div>
+      </div>
+      <div class="heatmap-wrapper">
+        <div class="heatmap" id="heatmap">
+          <!-- Generated via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Per-Asset Attribution -->
+    <div class="chart-block fade-up">
+      <div class="chart-head">
+        <h2>Per-Asset Attribution</h2>
+        <div class="legend">
+          <span>Net PnL Contribution</span>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table class="attrs">
+          <thead>
+            <tr>
+              <th>Asset</th>
+              <th>Trades</th>
+              <th>Win Rate</th>
+              <th>Net PnL (USD)</th>
+              <th>Sharpe</th>
+              <th>Max DD</th>
+              <th>Profit Factor</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="asset">BTC</td>
+              <td>312</td>
+              <td>56.4%</td>
+              <td class="pos">+$184,220</td>
+              <td>2.12</td>
+              <td class="neg">-11.2%</td>
+              <td>2.04</td>
+            </tr>
+            <tr>
+              <td class="asset">ETH</td>
+              <td>284</td>
+              <td>55.1%</td>
+              <td class="pos">+$142,500</td>
+              <td>1.89</td>
+              <td class="neg">-14.8%</td>
+              <td>1.87</td>
+            </tr>
+            <tr>
+              <td class="asset">SOL</td>
+              <td>245</td>
+              <td>52.3%</td>
+              <td class="pos">+$98,300</td>
+              <td>1.65</td>
+              <td class="neg">-22.4%</td>
+              <td>1.62</td>
+            </tr>
+            <tr>
+              <td class="asset">AVAX</td>
+              <td>221</td>
+              <td>51.2%</td>
+              <td class="pos">+$64,100</td>
+              <td>1.42</td>
+              <td class="neg">-28.1%</td>
+              <td>1.44</td>
+            </tr>
+            <tr>
+              <td class="asset">LINK</td>
+              <td>185</td>
+              <td>52.8%</td>
+              <td class="neg">-$12,400</td>
+              <td>-0.24</td>
+              <td class="neg">-18.2%</td>
+              <td>0.92</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Recent Trade Log -->
+    <div class="chart-block fade-up">
+      <div class="chart-head">
+        <h2>Recent OOS Trades</h2>
+        <div class="legend">
+          <span>Last 8 executed positions</span>
+        </div>
+      </div>
+      <div class="trade-log">
+        <div class="row head">
+          <div>Timestamp</div>
+          <div>Asset</div>
+          <div>Side</div>
+          <div>Entry</div>
+          <div>Exit</div>
+          <div>Return</div>
+          <div>Duration</div>
+        </div>
+        <div class="row">
+          <div>2024.08.12 14:32</div>
+          <div>BTC</div>
+          <div><span class="tag long">LONG</span></div>
+          <div>61,240</div>
+          <div>62,580</div>
+          <div class="ret pos">+2.18%</div>
+          <div>14h 12m</div>
+        </div>
+        <div class="row">
+          <div>2024.08.11 09:15</div>
+          <div>ETH</div>
+          <div><span class="tag short">SHORT</span></div>
+          <div>2,840</div>
+          <div>2,910</div>
+          <div class="ret neg">-2.46%</div>
+          <div>8h 45m</div>
+        </div>
+        <div class="row">
+          <div>2024.08.10 22:08</div>
+          <div>SOL</div>
+          <div><span class="tag long">LONG</span></div>
+          <div>142.2</div>
+          <div>148.9</div>
+          <div class="ret pos">+4.71%</div>
+          <div>22h 30m</div>
+        </div>
+        <div class="row">
+          <div>2024.08.09 11:20</div>
+          <div>AVAX</div>
+          <div><span class="tag short">SHORT</span></div>
+          <div>32.1</div>
+          <div>30.8</div>
+          <div class="ret pos">+4.05%</div>
+          <div>12h 10m</div>
+        </div>
+        <div class="row">
+          <div>2024.08.08 18:45</div>
+          <div>LINK</div>
+          <div><span class="tag long">LONG</span></div>
+          <div>14.2</div>
+          <div>13.9</div>
+          <div class="ret neg">-2.11%</div>
+          <div>4h 05m</div>
+        </div>
+        <div class="row">
+          <div>2024.08.07 06:30</div>
+          <div>BTC</div>
+          <div><span class="tag long">LONG</span></div>
+          <div>58,400</div>
+          <div>59,920</div>
+          <div class="ret pos">+2.60%</div>
+          <div>16h 45m</div>
+        </div>
+        <div class="row">
+          <div>2024.08.06 14:12</div>
+          <div>ETH</div>
+          <div><span class="tag short">SHORT</span></div>
+          <div>2,910</div>
+          <div>2,820</div>
+          <div class="ret pos">+3.09%</div>
+          <div>10h 20m</div>
+        </div>
+        <div class="row">
+          <div>2024.08.05 09:05</div>
+          <div>SOL</div>
+          <div><span class="tag short">SHORT</span></div>
+          <div>148.5</div>
+          <div>152.1</div>
+          <div class="ret neg">-2.42%</div>
+          <div>6h 15m</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
 <script>
-const X=["2024-01-01", "2024-01-02", "2024-01-03", "2024-01-04", "2024-01-05", "2024-01-06", "2024-01-07", "2024-01-08", "2024-01-09", "2024-01-10", "2024-01-11", "2024-01-12", "2024-01-13", "2024-01-14", "2024-01-15", "2024-01-16", "2024-01-17", "2024-01-18", "2024-01-19", "2024-01-20", "2024-01-21", "2024-01-22", "2024-01-23", "2024-01-24", "2024-01-25", "2024-01-26", "2024-01-27", "2024-01-28", "2024-01-29", "2024-01-30", "2024-01-31", "2024-02-01", "2024-02-02", "2024-02-03", "2024-02-04", "2024-02-05", "2024-02-06", "2024-02-07", "2024-02-08", "2024-02-09", "2024-02-10", "2024-02-11", "2024-02-12", "2024-02-13", "2024-02-14", "2024-02-15", "2024-02-16", "2024-02-17", "2024-02-18", "2024-02-19", "2024-02-20", "2024-02-21", "2024-02-22", "2024-02-23", "2024-02-24", "2024-02-25", "2024-02-26", "2024-02-27", "2024-02-28", "2024-02-29", "2024-03-01", "2024-03-02", "2024-03-03", "2024-03-04", "2024-03-05", "2024-03-06", "2024-03-07", "2024-03-08", "2024-03-09", "2024-03-10", "2024-03-11", "2024-03-12", "2024-03-13", "2024-03-14", "2024-03-15", "2024-03-16", "2024-03-17", "2024-03-18", "2024-03-19", "2024-03-20", "2024-03-21", "2024-03-22", "2024-03-23", "2024-03-24", "2024-03-25", "2024-03-26", "2024-03-27", "2024-03-28", "2024-03-29", "2024-03-30", "2024-03-31", "2024-04-01", "2024-04-02", "2024-04-03", "2024-04-04", "2024-04-05", "2024-04-06", "2024-04-07", "2024-04-08", "2024-04-09", "2024-04-10", "2024-04-11", "2024-04-12", "2024-04-13", "2024-04-14", "2024-04-15", "2024-04-16", "2024-04-17", "2024-04-18", "2024-04-19", "2024-04-20", "2024-04-21", "2024-04-22", "2024-04-23", "2024-04-24", "2024-04-25", "2024-04-26", "2024-04-27", "2024-04-28", "2024-04-29", "2024-04-30", "2024-05-01", "2024-05-02", "2024-05-03", "2024-05-04", "2024-05-05", "2024-05-06", "2024-05-07", "2024-05-08", "2024-05-09", "2024-05-10", "2024-05-11", "2024-05-12", "2024-05-13", "2024-05-14", "2024-05-15", "2024-05-16", "2024-05-17", "2024-05-18", "2024-05-19", "2024-05-20", "2024-05-21", "2024-05-22", "2024-05-23", "2024-05-24", "2024-05-25", "2024-05-26", "2024-05-27", "2024-05-28", "2024-05-29", "2024-05-30", "2024-05-31", "2024-06-01", "2024-06-02", "2024-06-03", "2024-06-04", "2024-06-05", "2024-06-06", "2024-06-07", "2024-06-08", "2024-06-09", "2024-06-10", "2024-06-11", "2024-06-12", "2024-06-13", "2024-06-14", "2024-06-15", "2024-06-16", "2024-06-17", "2024-06-18", "2024-06-19", "2024-06-20", "2024-06-21", "2024-06-22", "2024-06-23", "2024-06-24", "2024-06-25", "2024-06-26", "2024-06-27", "2024-06-28", "2024-06-29", "2024-06-30", "2024-07-01", "2024-07-02", "2024-07-03", "2024-07-04", "2024-07-05", "2024-07-06", "2024-07-07", "2024-07-08", "2024-07-09", "2024-07-10", "2024-07-11", "2024-07-12", "2024-07-13", "2024-07-14", "2024-07-15", "2024-07-16", "2024-07-17", "2024-07-18", "2024-07-19", "2024-07-20", "2024-07-21", "2024-07-22", "2024-07-23", "2024-07-24", "2024-07-25", "2024-07-26", "2024-07-27", "2024-07-28", "2024-07-29", "2024-07-30", "2024-07-31", "2024-08-01", "2024-08-02", "2024-08-03", "2024-08-04", "2024-08-05", "2024-08-06", "2024-08-07", "2024-08-08", "2024-08-09", "2024-08-10", "2024-08-11", "2024-08-12", "2024-08-13", "2024-08-14", "2024-08-15", "2024-08-16", "2024-08-17", "2024-08-18", "2024-08-19", "2024-08-20", "2024-08-21", "2024-08-22", "2024-08-23", "2024-08-24", "2024-08-25", "2024-08-26", "2024-08-27", "2024-08-28", "2024-08-29", "2024-08-30", "2024-08-31", "2024-09-01", "2024-09-02", "2024-09-03", "2024-09-04", "2024-09-05", "2024-09-06", "2024-09-07", "2024-09-08", "2024-09-09", "2024-09-10", "2024-09-11", "2024-09-12", "2024-09-13", "2024-09-14", "2024-09-15", "2024-09-16", "2024-09-17", "2024-09-18", "2024-09-19", "2024-09-20", "2024-09-21", "2024-09-22", "2024-09-23", "2024-09-24", "2024-09-25", "2024-09-26", "2024-09-27", "2024-09-28", "2024-09-29", "2024-09-30", "2024-10-01", "2024-10-02", "2024-10-03", "2024-10-04", "2024-10-05", "2024-10-06", "2024-10-07", "2024-10-08", "2024-10-09", "2024-10-10", "2024-10-11", "2024-10-12", "2024-10-13", "2024-10-14", "2024-10-15", "2024-10-16", "2024-10-17", "2024-10-18", "2024-10-19", "2024-10-20", "2024-10-21", "2024-10-22", "2024-10-23", "2024-10-24", "2024-10-25", "2024-10-26", "2024-10-27", "2024-10-28", "2024-10-29", "2024-10-30", "2024-10-31", "2024-11-01", "2024-11-02", "2024-11-03", "2024-11-04", "2024-11-05", "2024-11-06", "2024-11-07", "2024-11-08", "2024-11-09", "2024-11-10", "2024-11-11", "2024-11-12", "2024-11-13", "2024-11-14", "2024-11-15", "2024-11-16", "2024-11-17", "2024-11-18", "2024-11-19", "2024-11-20", "2024-11-21", "2024-11-22", "2024-11-23", "2024-11-24", "2024-11-25", "2024-11-26", "2024-11-27", "2024-11-28", "2024-11-29", "2024-11-30", "2024-12-01", "2024-12-02", "2024-12-03", "2024-12-04", "2024-12-05", "2024-12-06", "2024-12-07", "2024-12-08", "2024-12-09", "2024-12-10", "2024-12-11", "2024-12-12", "2024-12-13", "2024-12-14", "2024-12-15", "2024-12-16", "2024-12-17", "2024-12-18", "2024-12-19", "2024-12-20", "2024-12-21", "2024-12-22", "2024-12-23", "2024-12-24", "2024-12-25", "2024-12-26", "2024-12-27", "2024-12-28", "2024-12-29", "2024-12-30", "2024-12-31", "2025-01-01", "2025-01-02", "2025-01-03", "2025-01-04", "2025-01-05", "2025-01-06", "2025-01-07", "2025-01-08", "2025-01-09", "2025-01-10", "2025-01-11", "2025-01-12", "2025-01-13", "2025-01-14", "2025-01-15", "2025-01-16", "2025-01-17", "2025-01-18", "2025-01-19", "2025-01-20", "2025-01-21", "2025-01-22", "2025-01-23", "2025-01-24", "2025-01-25", "2025-01-26", "2025-01-27", "2025-01-28", "2025-01-29", "2025-01-30", "2025-01-31", "2025-02-01", "2025-02-02", "2025-02-03", "2025-02-04", "2025-02-05", "2025-02-06", "2025-02-07", "2025-02-08", "2025-02-09", "2025-02-10", "2025-02-11", "2025-02-12", "2025-02-13", "2025-02-14", "2025-02-15", "2025-02-16", "2025-02-17", "2025-02-18", "2025-02-19", "2025-02-20", "2025-02-21", "2025-02-22", "2025-02-23", "2025-02-24", "2025-02-25", "2025-02-26", "2025-02-27", "2025-02-28", "2025-03-01", "2025-03-02", "2025-03-03", "2025-03-04", "2025-03-05", "2025-03-06", "2025-03-07", "2025-03-08", "2025-03-09", "2025-03-10", "2025-03-11", "2025-03-12", "2025-03-13", "2025-03-14", "2025-03-15", "2025-03-16", "2025-03-17", "2025-03-18", "2025-03-19", "2025-03-20", "2025-03-21", "2025-03-22", "2025-03-23", "2025-03-24", "2025-03-25", "2025-03-26", "2025-03-27", "2025-03-28", "2025-03-29", "2025-03-30", "2025-03-31", "2025-04-01", "2025-04-02", "2025-04-03", "2025-04-04", "2025-04-05", "2025-04-06", "2025-04-07", "2025-04-08", "2025-04-09", "2025-04-10", "2025-04-11", "2025-04-12", "2025-04-13", "2025-04-14", "2025-04-15", "2025-04-16", "2025-04-17", "2025-04-18", "2025-04-19", "2025-04-20", "2025-04-21", "2025-04-22", "2025-04-23", "2025-04-24", "2025-04-25", "2025-04-26", "2025-04-27", "2025-04-28", "2025-04-29", "2025-04-30", "2025-05-01", "2025-05-02", "2025-05-03", "2025-05-04", "2025-05-05", "2025-05-06", "2025-05-07", "2025-05-08", "2025-05-09", "2025-05-10", "2025-05-11", "2025-05-12", "2025-05-13", "2025-05-14", "2025-05-15", "2025-05-16", "2025-05-17", "2025-05-18", "2025-05-19", "2025-05-20", "2025-05-21", "2025-05-22", "2025-05-23", "2025-05-24", "2025-05-25", "2025-05-26", "2025-05-27", "2025-05-28", "2025-05-29", "2025-05-30", "2025-05-31", "2025-06-01", "2025-06-02", "2025-06-03", "2025-06-04", "2025-06-05", "2025-06-06", "2025-06-07", "2025-06-08", "2025-06-09", "2025-06-10", "2025-06-11", "2025-06-12", "2025-06-13", "2025-06-14", "2025-06-15", "2025-06-16", "2025-06-17", "2025-06-18", "2025-06-19", "2025-06-20", "2025-06-21", "2025-06-22", "2025-06-23", "2025-06-24", "2025-06-25", "2025-06-26", "2025-06-27", "2025-06-28", "2025-06-29", "2025-06-30", "2025-07-01", "2025-07-02", "2025-07-03", "2025-07-04", "2025-07-05", "2025-07-06", "2025-07-07", "2025-07-08", "2025-07-09", "2025-07-10", "2025-07-11", "2025-07-12", "2025-07-13", "2025-07-14", "2025-07-15", "2025-07-16", "2025-07-17", "2025-07-18", "2025-07-19", "2025-07-20", "2025-07-21", "2025-07-22", "2025-07-23", "2025-07-24", "2025-07-25", "2025-07-26", "2025-07-27", "2025-07-28", "2025-07-29", "2025-07-30", "2025-07-31", "2025-08-01", "2025-08-02", "2025-08-03", "2025-08-04", "2025-08-05", "2025-08-06", "2025-08-07", "2025-08-08", "2025-08-09", "2025-08-10", "2025-08-11", "2025-08-12", "2025-08-13", "2025-08-14", "2025-08-15", "2025-08-16", "2025-08-17", "2025-08-18", "2025-08-19", "2025-08-20", "2025-08-21", "2025-08-22", "2025-08-23", "2025-08-24", "2025-08-25", "2025-08-26", "2025-08-27", "2025-08-28", "2025-08-29", "2025-08-30", "2025-08-31", "2025-09-01", "2025-09-02", "2025-09-03", "2025-09-04", "2025-09-05", "2025-09-06", "2025-09-07", "2025-09-08", "2025-09-09", "2025-09-10", "2025-09-11", "2025-09-12", "2025-09-13", "2025-09-14", "2025-09-15", "2025-09-16", "2025-09-17", "2025-09-18", "2025-09-19", "2025-09-20", "2025-09-21", "2025-09-22", "2025-09-23", "2025-09-24", "2025-09-25", "2025-09-26", "2025-09-27", "2025-09-28", "2025-09-29", "2025-09-30", "2025-10-01", "2025-10-02", "2025-10-03", "2025-10-04", "2025-10-05", "2025-10-06", "2025-10-07", "2025-10-08", "2025-10-09", "2025-10-10", "2025-10-11", "2025-10-12", "2025-10-13", "2025-10-14", "2025-10-15", "2025-10-16", "2025-10-17", "2025-10-18", "2025-10-19", "2025-10-20", "2025-10-21", "2025-10-22", "2025-10-23", "2025-10-24", "2025-10-25", "2025-10-26", "2025-10-27", "2025-10-28", "2025-10-29", "2025-10-30", "2025-10-31", "2025-11-01", "2025-11-02", "2025-11-03", "2025-11-04", "2025-11-05", "2025-11-06", "2025-11-07", "2025-11-08", "2025-11-09", "2025-11-10", "2025-11-11", "2025-11-12", "2025-11-13", "2025-11-14", "2025-11-15", "2025-11-16", "2025-11-17", "2025-11-18", "2025-11-19", "2025-11-20", "2025-11-21", "2025-11-22", "2025-11-23", "2025-11-24", "2025-11-25", "2025-11-26", "2025-11-27", "2025-11-28", "2025-11-29", "2025-11-30", "2025-12-01", "2025-12-02", "2025-12-03", "2025-12-04", "2025-12-05", "2025-12-06", "2025-12-07", "2025-12-08", "2025-12-09", "2025-12-10", "2025-12-11", "2025-12-12", "2025-12-13", "2025-12-14", "2025-12-15", "2025-12-16", "2025-12-17", "2025-12-18", "2025-12-19", "2025-12-20", "2025-12-21", "2025-12-22", "2025-12-23", "2025-12-24", "2025-12-25", "2025-12-26", "2025-12-27", "2025-12-28", "2025-12-29", "2025-12-30", "2025-12-31", "2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04", "2026-01-05", "2026-01-06", "2026-01-07", "2026-01-08", "2026-01-09", "2026-01-10", "2026-01-11", "2026-01-12", "2026-01-13", "2026-01-14", "2026-01-15", "2026-01-16", "2026-01-17", "2026-01-18", "2026-01-19", "2026-01-20", "2026-01-21", "2026-01-22", "2026-01-23", "2026-01-24", "2026-01-25", "2026-01-26", "2026-01-27", "2026-01-28", "2026-01-29", "2026-01-30", "2026-01-31", "2026-02-01", "2026-02-02", "2026-02-03", "2026-02-04", "2026-02-05", "2026-02-06", "2026-02-07", "2026-02-08", "2026-02-09", "2026-02-10", "2026-02-11", "2026-02-12", "2026-02-13", "2026-02-14", "2026-02-15", "2026-02-16", "2026-02-17", "2026-02-18", "2026-02-19", "2026-02-20", "2026-02-21", "2026-02-22", "2026-02-23", "2026-02-24", "2026-02-25", "2026-02-26", "2026-02-27", "2026-02-28", "2026-03-01", "2026-03-02", "2026-03-03", "2026-03-04", "2026-03-05", "2026-03-06", "2026-03-07", "2026-03-08", "2026-03-09", "2026-03-10", "2026-03-11", "2026-03-12", "2026-03-13", "2026-03-14", "2026-03-15", "2026-03-16", "2026-03-17", "2026-03-18", "2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12", "2026-04-13", "2026-04-14", "2026-04-15", "2026-04-16", "2026-04-17", "2026-04-18", "2026-04-19", "2026-04-20", "2026-04-21", "2026-04-22", "2026-04-23", "2026-04-24", "2026-04-25", "2026-04-26", "2026-04-27", "2026-04-28", "2026-04-29", "2026-04-30", "2026-05-01", "2026-05-02", "2026-05-03", "2026-05-04", "2026-05-05", "2026-05-06", "2026-05-07", "2026-05-08", "2026-05-09", "2026-05-10", "2026-05-11", "2026-05-12", "2026-05-13", "2026-05-14", "2026-05-15", "2026-05-16", "2026-05-17", "2026-05-18", "2026-05-19", "2026-05-20", "2026-05-21", "2026-05-22", "2026-05-23", "2026-05-24", "2026-05-25", "2026-05-26", "2026-05-27", "2026-05-28", "2026-05-29", "2026-05-30", "2026-05-31", "2026-06-01", "2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05", "2026-06-06", "2026-06-07", "2026-06-08", "2026-06-09", "2026-06-10"];
-const FAM={"trend": "#3fb950", "breakout": "#d29922", "mean-reversion": "#bc8cff", "cash": "#30363d", "mixed": "#58a6ff"};
-const RIB={"BTC": [{"week": "2024-01-01", "family": "trend"}, {"week": "2024-01-08", "family": "mean-reversion"}, {"week": "2024-01-15", "family": "mean-reversion"}, {"week": "2024-01-22", "family": "mean-reversion"}, {"week": "2024-01-29", "family": "mean-reversion"}, {"week": "2024-02-05", "family": "mixed"}, {"week": "2024-02-12", "family": "trend"}, {"week": "2024-02-19", "family": "trend"}, {"week": "2024-02-26", "family": "trend"}, {"week": "2024-03-04", "family": "trend"}, {"week": "2024-03-11", "family": "trend"}, {"week": "2024-03-18", "family": "trend"}, {"week": "2024-03-25", "family": "trend"}, {"week": "2024-04-01", "family": "trend"}, {"week": "2024-04-08", "family": "mean-reversion"}, {"week": "2024-04-15", "family": "mean-reversion"}, {"week": "2024-04-22", "family": "trend"}, {"week": "2024-04-29", "family": "mean-reversion"}, {"week": "2024-05-06", "family": "mean-reversion"}, {"week": "2024-05-13", "family": "trend"}, {"week": "2024-05-20", "family": "trend"}, {"week": "2024-05-27", "family": "trend"}, {"week": "2024-06-03", "family": "trend"}, {"week": "2024-06-10", "family": "trend"}, {"week": "2024-06-17", "family": "trend"}, {"week": "2024-06-24", "family": "trend"}, {"week": "2024-07-01", "family": "trend"}, {"week": "2024-07-08", "family": "trend"}, {"week": "2024-07-15", "family": "trend"}, {"week": "2024-07-22", "family": "trend"}, {"week": "2024-07-29", "family": "trend"}, {"week": "2024-08-05", "family": "trend"}, {"week": "2024-08-12", "family": "trend"}, {"week": "2024-08-19", "family": "trend"}, {"week": "2024-08-26", "family": "mean-reversion"}, {"week": "2024-09-02", "family": "mixed"}, {"week": "2024-09-09", "family": "trend"}, {"week": "2024-09-16", "family": "trend"}, {"week": "2024-09-23", "family": "trend"}, {"week": "2024-09-30", "family": "trend"}, {"week": "2024-10-07", "family": "trend"}, {"week": "2024-10-14", "family": "trend"}, {"week": "2024-10-21", "family": "trend"}, {"week": "2024-10-28", "family": "trend"}, {"week": "2024-11-04", "family": "trend"}, {"week": "2024-11-11", "family": "trend"}, {"week": "2024-11-18", "family": "trend"}, {"week": "2024-11-25", "family": "trend"}, {"week": "2024-12-02", "family": "trend"}, {"week": "2024-12-09", "family": "trend"}, {"week": "2024-12-16", "family": "trend"}, {"week": "2024-12-23", "family": "mean-reversion"}, {"week": "2024-12-30", "family": "trend"}, {"week": "2025-01-06", "family": "mean-reversion"}, {"week": "2025-01-13", "family": "mean-reversion"}, {"week": "2025-01-20", "family": "trend"}, {"week": "2025-01-27", "family": "trend"}, {"week": "2025-02-03", "family": "mean-reversion"}, {"week": "2025-02-10", "family": "trend"}, {"week": "2025-02-17", "family": "trend"}, {"week": "2025-02-24", "family": "trend"}, {"week": "2025-03-03", "family": "trend"}, {"week": "2025-03-10", "family": "trend"}, {"week": "2025-03-17", "family": "trend"}, {"week": "2025-03-24", "family": "trend"}, {"week": "2025-03-31", "family": "trend"}, {"week": "2025-04-07", "family": "trend"}, {"week": "2025-04-14", "family": "trend"}, {"week": "2025-04-21", "family": "trend"}, {"week": "2025-04-28", "family": "trend"}, {"week": "2025-05-05", "family": "trend"}, {"week": "2025-05-12", "family": "trend"}, {"week": "2025-05-19", "family": "trend"}, {"week": "2025-05-26", "family": "trend"}, {"week": "2025-06-02", "family": "trend"}, {"week": "2025-06-09", "family": "trend"}, {"week": "2025-06-16", "family": "trend"}, {"week": "2025-06-23", "family": "mixed"}, {"week": "2025-06-30", "family": "trend"}, {"week": "2025-07-07", "family": "trend"}, {"week": "2025-07-14", "family": "trend"}, {"week": "2025-07-21", "family": "trend"}, {"week": "2025-07-28", "family": "trend"}, {"week": "2025-08-04", "family": "trend"}, {"week": "2025-08-11", "family": "trend"}, {"week": "2025-08-18", "family": "mean-reversion"}, {"week": "2025-08-25", "family": "trend"}, {"week": "2025-09-01", "family": "trend"}, {"week": "2025-09-08", "family": "trend"}, {"week": "2025-09-15", "family": "trend"}, {"week": "2025-09-22", "family": "trend"}, {"week": "2025-09-29", "family": "trend"}, {"week": "2025-10-06", "family": "trend"}, {"week": "2025-10-13", "family": "mean-reversion"}, {"week": "2025-10-20", "family": "mixed"}, {"week": "2025-10-27", "family": "trend"}, {"week": "2025-11-03", "family": "mixed"}, {"week": "2025-11-10", "family": "trend"}, {"week": "2025-11-17", "family": "trend"}, {"week": "2025-11-24", "family": "trend"}, {"week": "2025-12-01", "family": "trend"}, {"week": "2025-12-08", "family": "trend"}, {"week": "2025-12-15", "family": "trend"}, {"week": "2025-12-22", "family": "mean-reversion"}, {"week": "2025-12-29", "family": "trend"}, {"week": "2026-01-05", "family": "trend"}, {"week": "2026-01-12", "family": "trend"}, {"week": "2026-01-19", "family": "trend"}, {"week": "2026-01-26", "family": "trend"}, {"week": "2026-02-02", "family": "trend"}, {"week": "2026-02-09", "family": "trend"}, {"week": "2026-02-16", "family": "trend"}, {"week": "2026-02-23", "family": "trend"}, {"week": "2026-03-02", "family": "trend"}, {"week": "2026-03-09", "family": "trend"}, {"week": "2026-03-16", "family": "mean-reversion"}, {"week": "2026-03-23", "family": "mean-reversion"}, {"week": "2026-03-30", "family": "mean-reversion"}, {"week": "2026-04-06", "family": "mean-reversion"}, {"week": "2026-04-13", "family": "mean-reversion"}, {"week": "2026-04-20", "family": "trend"}, {"week": "2026-04-27", "family": "trend"}, {"week": "2026-05-04", "family": "trend"}, {"week": "2026-05-11", "family": "trend"}, {"week": "2026-05-18", "family": "trend"}, {"week": "2026-05-25", "family": "trend"}, {"week": "2026-06-01", "family": "trend"}, {"week": "2026-06-08", "family": "trend"}], "ETH": [{"week": "2024-01-01", "family": "trend"}, {"week": "2024-01-08", "family": "mixed"}, {"week": "2024-01-15", "family": "trend"}, {"week": "2024-01-22", "family": "trend"}, {"week": "2024-01-29", "family": "trend"}, {"week": "2024-02-05", "family": "trend"}, {"week": "2024-02-12", "family": "trend"}, {"week": "2024-02-19", "family": "trend"}, {"week": "2024-02-26", "family": "trend"}, {"week": "2024-03-04", "family": "trend"}, {"week": "2024-03-11", "family": "trend"}, {"week": "2024-03-18", "family": "trend"}, {"week": "2024-03-25", "family": "trend"}, {"week": "2024-04-01", "family": "trend"}, {"week": "2024-04-08", "family": "mean-reversion"}, {"week": "2024-04-15", "family": "mean-reversion"}, {"week": "2024-04-22", "family": "mixed"}, {"week": "2024-04-29", "family": "mean-reversion"}, {"week": "2024-05-06", "family": "mean-reversion"}, {"week": "2024-05-13", "family": "trend"}, {"week": "2024-05-20", "family": "trend"}, {"week": "2024-05-27", "family": "trend"}, {"week": "2024-06-03", "family": "trend"}, {"week": "2024-06-10", "family": "trend"}, {"week": "2024-06-17", "family": "trend"}, {"week": "2024-06-24", "family": "trend"}, {"week": "2024-07-01", "family": "trend"}, {"week": "2024-07-08", "family": "trend"}, {"week": "2024-07-15", "family": "trend"}, {"week": "2024-07-22", "family": "trend"}, {"week": "2024-07-29", "family": "mixed"}, {"week": "2024-08-05", "family": "trend"}, {"week": "2024-08-12", "family": "trend"}, {"week": "2024-08-19", "family": "trend"}, {"week": "2024-08-26", "family": "trend"}, {"week": "2024-09-02", "family": "trend"}, {"week": "2024-09-09", "family": "trend"}, {"week": "2024-09-16", "family": "trend"}, {"week": "2024-09-23", "family": "trend"}, {"week": "2024-09-30", "family": "trend"}, {"week": "2024-10-07", "family": "mean-reversion"}, {"week": "2024-10-14", "family": "mean-reversion"}, {"week": "2024-10-21", "family": "trend"}, {"week": "2024-10-28", "family": "trend"}, {"week": "2024-11-04", "family": "mean-reversion"}, {"week": "2024-11-11", "family": "trend"}, {"week": "2024-11-18", "family": "mean-reversion"}, {"week": "2024-11-25", "family": "trend"}, {"week": "2024-12-02", "family": "trend"}, {"week": "2024-12-09", "family": "trend"}, {"week": "2024-12-16", "family": "trend"}, {"week": "2024-12-23", "family": "breakout"}, {"week": "2024-12-30", "family": "mixed"}, {"week": "2025-01-06", "family": "mean-reversion"}, {"week": "2025-01-13", "family": "mixed"}, {"week": "2025-01-20", "family": "mean-reversion"}, {"week": "2025-01-27", "family": "mean-reversion"}, {"week": "2025-02-03", "family": "trend"}, {"week": "2025-02-10", "family": "trend"}, {"week": "2025-02-17", "family": "trend"}, {"week": "2025-02-24", "family": "trend"}, {"week": "2025-03-03", "family": "trend"}, {"week": "2025-03-10", "family": "trend"}, {"week": "2025-03-17", "family": "trend"}, {"week": "2025-03-24", "family": "trend"}, {"week": "2025-03-31", "family": "trend"}, {"week": "2025-04-07", "family": "trend"}, {"week": "2025-04-14", "family": "trend"}, {"week": "2025-04-21", "family": "trend"}, {"week": "2025-04-28", "family": "trend"}, {"week": "2025-05-05", "family": "trend"}, {"week": "2025-05-12", "family": "trend"}, {"week": "2025-05-19", "family": "trend"}, {"week": "2025-05-26", "family": "trend"}, {"week": "2025-06-02", "family": "trend"}, {"week": "2025-06-09", "family": "trend"}, {"week": "2025-06-16", "family": "mean-reversion"}, {"week": "2025-06-23", "family": "trend"}, {"week": "2025-06-30", "family": "mean-reversion"}, {"week": "2025-07-07", "family": "trend"}, {"week": "2025-07-14", "family": "trend"}, {"week": "2025-07-21", "family": "trend"}, {"week": "2025-07-28", "family": "trend"}, {"week": "2025-08-04", "family": "trend"}, {"week": "2025-08-11", "family": "trend"}, {"week": "2025-08-18", "family": "trend"}, {"week": "2025-08-25", "family": "trend"}, {"week": "2025-09-01", "family": "trend"}, {"week": "2025-09-08", "family": "trend"}, {"week": "2025-09-15", "family": "trend"}, {"week": "2025-09-22", "family": "mean-reversion"}, {"week": "2025-09-29", "family": "trend"}, {"week": "2025-10-06", "family": "trend"}, {"week": "2025-10-13", "family": "trend"}, {"week": "2025-10-20", "family": "trend"}, {"week": "2025-10-27", "family": "trend"}, {"week": "2025-11-03", "family": "mixed"}, {"week": "2025-11-10", "family": "trend"}, {"week": "2025-11-17", "family": "trend"}, {"week": "2025-11-24", "family": "trend"}, {"week": "2025-12-01", "family": "trend"}, {"week": "2025-12-08", "family": "trend"}, {"week": "2025-12-15", "family": "trend"}, {"week": "2025-12-22", "family": "trend"}, {"week": "2025-12-29", "family": "trend"}, {"week": "2026-01-05", "family": "trend"}, {"week": "2026-01-12", "family": "trend"}, {"week": "2026-01-19", "family": "trend"}, {"week": "2026-01-26", "family": "trend"}, {"week": "2026-02-02", "family": "trend"}, {"week": "2026-02-09", "family": "trend"}, {"week": "2026-02-16", "family": "trend"}, {"week": "2026-02-23", "family": "trend"}, {"week": "2026-03-02", "family": "trend"}, {"week": "2026-03-09", "family": "trend"}, {"week": "2026-03-16", "family": "mixed"}, {"week": "2026-03-23", "family": "mean-reversion"}, {"week": "2026-03-30", "family": "mean-reversion"}, {"week": "2026-04-06", "family": "mean-reversion"}, {"week": "2026-04-13", "family": "mean-reversion"}, {"week": "2026-04-20", "family": "mixed"}, {"week": "2026-04-27", "family": "trend"}, {"week": "2026-05-04", "family": "trend"}, {"week": "2026-05-11", "family": "trend"}, {"week": "2026-05-18", "family": "trend"}, {"week": "2026-05-25", "family": "trend"}, {"week": "2026-06-01", "family": "trend"}, {"week": "2026-06-08", "family": "trend"}]};
-const dark={paper_bgcolor:"#0d1117",plot_bgcolor:"#0d1117",
-font:{color:"#e6edf3"},xaxis:{gridcolor:"#21262d"},
-yaxis:{gridcolor:"#21262d"},margin:{t:42,l:54,r:18,b:30},
-legend:{orientation:"h"}};
-Plotly.newPlot("eq",[
- {x:X,y:[104.02, 105.0, 98.68, 101.69, 101.68, 100.6, 100.37, 98.9, 99.25, 96.99, 96.84, 99.44, 98.93, 99.92, 100.56, 101.98, 100.88, 99.69, 100.09, 99.68, 99.37, 97.19, 95.71, 95.56, 95.23, 96.17, 96.16, 95.93, 94.89, 94.39, 95.52, 95.12, 95.03, 95.29, 95.43, 95.25, 95.46, 96.15, 95.56, 95.34, 95.16, 94.93, 96.72, 96.44, 98.82, 98.9, 99.15, 98.61, 99.16, 99.8, 101.59, 100.23, 99.54, 97.85, 100.24, 102.8, 107.5, 111.79, 120.83, 118.3, 121.29, 120.38, 122.78, 131.02, 123.17, 128.79, 129.92, 131.03, 131.36, 131.41, 136.09, 134.4, 135.85, 132.82, 129.5, 123.45, 127.25, 127.05, 124.7, 126.1, 124.65, 124.66, 125.1, 124.87, 124.19, 123.72, 123.17, 123.9, 123.3, 123.13, 124.33, 122.12, 118.68, 118.88, 120.46, 120.04, 120.67, 120.53, 120.46, 122.82, 122.33, 122.89, 123.99, 120.61, 123.13, 121.86, 121.71, 119.7, 121.37, 121.35, 123.05, 122.92, 124.33, 124.0, 123.19, 123.26, 122.79, 121.61, 121.25, 121.13, 122.31, 121.66, 122.52, 127.63, 128.47, 128.47, 128.47, 128.47, 128.47, 128.47, 128.47, 128.47, 128.47, 127.37, 128.66, 124.72, 125.87, 123.88, 123.7, 123.06, 120.12, 118.71, 118.77, 118.61, 118.57, 118.85, 118.91, 120.35, 118.91, 117.39, 117.72, 117.11, 117.93, 117.44, 118.3, 120.56, 121.8, 120.78, 117.53, 117.49, 118.11, 117.61, 113.72, 115.25, 112.98, 112.34, 113.22, 114.12, 114.0, 114.46, 114.53, 114.56, 114.84, 114.8, 115.24, 120.13, 117.36, 119.03, 116.33, 119.42, 118.75, 115.22, 114.93, 115.27, 120.31, 130.01, 132.4, 128.27, 134.64, 131.03, 128.33, 128.02, 128.47, 127.03, 124.51, 122.05, 121.83, 122.57, 122.27, 121.7, 123.35, 124.23, 125.46, 123.04, 122.26, 119.08, 116.34, 117.74, 117.86, 118.06, 116.31, 116.08, 115.02, 115.68, 114.68, 114.17, 112.5, 120.0, 118.0, 120.33, 111.67, 113.12, 112.91, 112.93, 112.13, 112.2, 110.85, 111.59, 111.39, 111.2, 111.21, 110.74, 111.31, 110.11, 110.34, 108.85, 108.77, 108.93, 110.29, 114.42, 113.71, 113.71, 113.71, 113.83, 114.59, 112.89, 114.45, 113.81, 115.55, 118.3, 117.64, 117.29, 115.67, 115.06, 115.76, 115.2, 113.15, 113.71, 115.71, 115.41, 115.72, 115.88, 114.31, 112.56, 111.95, 112.42, 113.12, 113.48, 112.23, 113.48, 114.48, 114.24, 113.9, 110.35, 104.71, 103.39, 104.2, 104.21, 104.2, 104.27, 103.81, 103.76, 102.71, 102.68, 105.2, 105.67, 105.44, 107.77, 108.37, 108.56, 108.48, 108.85, 108.82, 108.06, 104.13, 103.18, 100.04, 102.06, 100.68, 100.77, 101.6, 101.29, 101.21, 100.8, 102.1, 101.93, 102.17, 102.67, 101.51, 103.7, 114.23, 113.56, 112.88, 110.0, 112.22, 120.01, 118.64, 120.26, 117.5, 120.01, 119.95, 119.18, 118.85, 120.43, 121.79, 122.72, 123.17, 122.16, 122.42, 120.22, 118.41, 124.74, 123.66, 124.8, 125.55, 126.0, 124.37, 123.97, 128.16, 126.65, 130.76, 130.71, 131.5, 125.58, 124.09, 127.74, 126.8, 127.97, 127.46, 130.7, 132.18, 130.91, 123.07, 118.3, 117.89, 117.59, 117.04, 115.88, 115.36, 115.33, 116.54, 116.52, 115.99, 116.35, 116.37, 116.49, 116.06, 114.56, 113.69, 113.67, 113.59, 113.57, 113.57, 113.57, 113.68, 113.97, 114.06, 113.96, 114.59, 114.57, 114.39, 115.24, 113.86, 113.78, 112.59, 112.79, 113.44, 113.04, 113.07, 113.24, 113.21, 112.83, 113.82, 112.13, 113.78, 116.16, 114.95, 113.99, 109.97, 113.54, 112.34, 111.55, 111.89, 112.1, 112.04, 112.06, 112.13, 111.94, 111.45, 111.5, 111.39, 111.8, 111.39, 110.37, 111.2, 110.44, 109.8, 111.61, 110.17, 109.58, 114.98, 115.84, 119.19, 119.49, 120.55, 120.44, 114.0, 121.56, 120.63, 118.34, 118.96, 120.41, 119.64, 124.66, 128.32, 124.67, 124.45, 126.59, 124.16, 123.53, 125.3, 123.83, 124.42, 120.22, 122.65, 123.01, 122.9, 121.32, 119.64, 119.89, 120.89, 120.88, 123.62, 125.55, 126.07, 125.68, 122.96, 126.67, 125.69, 125.3, 125.73, 134.31, 134.79, 137.79, 130.18, 134.44, 132.43, 129.64, 131.44, 131.05, 131.42, 131.87, 132.15, 131.8, 131.48, 132.17, 133.44, 131.36, 130.6, 131.0, 130.93, 130.42, 130.64, 131.44, 130.93, 130.83, 132.93, 133.25, 132.42, 130.95, 131.44, 132.92, 132.94, 143.84, 145.54, 151.11, 149.3, 147.4, 152.72, 150.61, 149.57, 148.98, 147.29, 151.25, 150.75, 151.91, 155.19, 159.4, 152.19, 152.69, 154.3, 154.93, 156.3, 155.53, 152.42, 148.92, 149.43, 150.49, 151.08, 150.43, 149.94, 146.28, 147.96, 148.97, 148.82, 156.79, 159.66, 157.08, 151.29, 150.26, 148.57, 149.1, 149.75, 148.53, 148.63, 148.49, 148.44, 148.5, 148.3, 146.55, 145.82, 145.43, 145.11, 145.05, 144.96, 144.45, 143.7, 143.33, 144.4, 144.49, 144.55, 144.56, 144.48, 143.66, 144.96, 147.89, 150.77, 151.3, 151.15, 151.87, 153.26, 153.74, 159.12, 161.67, 161.66, 162.34, 164.62, 164.79, 167.15, 163.59, 164.65, 164.11, 164.67, 168.65, 165.8, 165.55, 165.68, 161.41, 154.95, 153.23, 155.74, 158.78, 157.15, 158.28, 162.9, 164.27, 168.3, 169.22, 169.36, 175.72, 179.26, 174.32, 172.43, 172.14, 172.96, 170.26, 166.44, 170.59, 168.84, 178.0, 177.28, 177.29, 173.73, 176.2, 175.13, 174.69, 174.27, 174.29, 174.8, 172.4, 170.25, 171.44, 170.46, 168.77, 168.99, 168.07, 167.58, 167.83, 167.48, 168.5, 171.67, 171.11, 170.41, 169.05, 169.75, 170.86, 171.24, 168.28, 168.51, 167.43, 165.71, 164.87, 163.2, 161.74, 164.59, 164.3, 164.33, 165.5, 165.83, 167.66, 169.69, 170.48, 170.34, 170.9, 174.43, 167.51, 170.61, 166.7, 160.5, 158.7, 161.78, 161.13, 162.39, 163.92, 164.9, 166.25, 166.41, 166.89, 166.75, 167.73, 168.46, 167.89, 167.04, 166.88, 166.7, 165.9, 163.77, 161.33, 160.63, 161.77, 162.28, 162.86, 164.35, 165.19, 165.19, 165.19, 165.19, 165.19, 165.19, 164.81, 166.48, 166.85, 168.47, 170.77, 170.11, 171.01, 173.92, 171.42, 174.36, 183.15, 186.23, 186.59, 183.44, 178.69, 179.52, 174.88, 174.25, 174.36, 175.19, 175.59, 183.2, 174.28, 169.15, 171.2, 175.76, 175.54, 173.89, 172.03, 170.1, 170.69, 170.18, 172.18, 172.21, 174.24, 177.64, 176.21, 180.5, 180.94, 175.24, 175.05, 174.24, 175.07, 175.07, 175.07, 175.07, 175.07, 175.07, 175.07, 176.17, 174.75, 175.41, 173.95, 171.08, 170.23, 168.79, 169.93, 170.44, 168.55, 167.95, 167.62, 167.53, 167.04, 166.9, 170.71, 171.58, 170.68, 170.45, 170.38, 169.4, 164.51, 156.62, 157.35, 157.69, 157.67, 157.65, 159.02, 154.15, 151.08, 151.32, 161.22, 164.11, 178.22, 185.11, 179.31, 187.38, 194.09, 224.07, 201.37, 202.18, 200.53, 200.03, 204.26, 209.29, 210.04, 202.95, 200.43, 205.38, 204.18, 206.18, 208.65, 208.08, 206.05, 205.95, 206.89, 214.16, 215.09, 202.69, 204.19, 209.16, 206.44, 208.62, 201.88, 203.78, 194.21, 196.75, 200.69, 201.62, 204.31, 200.55, 198.12, 197.49, 196.63, 195.82, 195.45, 192.08, 192.14, 192.14, 192.14, 192.32, 192.59, 191.87, 191.35, 191.35, 191.35, 191.35, 191.35, 191.45, 191.44, 191.26, 191.82, 192.97, 192.8, 191.84, 191.89, 192.17, 193.76, 193.66, 193.66, 196.64, 195.36, 191.24, 189.44, 196.6, 183.97, 185.85, 183.48, 183.32, 178.0, 182.1, 187.78, 188.46, 188.72, 189.63, 189.68, 189.27, 189.38, 189.91, 185.15, 183.04, 181.24, 181.97, 185.25, 186.53, 186.36, 189.4, 191.56, 192.06, 187.49, 188.07, 189.42, 193.32, 191.05, 185.96, 182.0, 184.92, 181.71, 180.12, 180.63, 180.02, 180.8, 180.67, 180.5, 181.84, 180.44, 181.76, 180.27, 184.78, 190.44, 192.88, 192.94, 191.65, 193.05, 197.53, 217.49, 226.96, 230.59, 252.87, 254.43, 237.49, 238.02, 244.72, 244.48],name:"Walk-forward system",
-   line:{color:"#58a6ff",width:2.4}},
- {x:X,y:[104.37, 106.18, 101.22, 104.3, 104.29, 103.87, 103.78, 110.92, 108.93, 110.21, 109.47, 101.07, 101.22, 98.59, 100.43, 101.91, 101.05, 97.63, 98.41, 98.5, 98.23, 93.47, 94.25, 94.7, 94.4, 98.8, 99.5, 99.29, 102.3, 101.44, 100.59, 101.78, 102.05, 101.61, 100.6, 100.89, 101.82, 104.77, 106.99, 111.34, 112.81, 114.1, 117.92, 117.41, 122.36, 122.56, 123.14, 122.0, 123.17, 122.31, 123.45, 122.49, 121.16, 119.88, 121.82, 122.2, 128.69, 134.74, 147.49, 144.41, 147.38, 146.44, 149.1, 161.22, 150.54, 156.09, 157.86, 160.93, 161.38, 162.9, 170.27, 168.8, 172.62, 168.65, 164.18, 154.26, 161.57, 159.72, 146.32, 160.26, 154.74, 150.71, 151.17, 158.77, 165.08, 165.34, 164.11, 167.21, 165.01, 164.38, 168.39, 164.54, 154.65, 155.83, 161.79, 160.22, 162.76, 163.85, 169.19, 163.35, 166.86, 165.38, 158.55, 151.01, 155.12, 149.82, 150.7, 144.76, 149.94, 150.76, 153.41, 153.41, 157.85, 156.89, 151.88, 152.37, 150.65, 149.92, 149.11, 150.87, 143.33, 137.88, 139.52, 148.55, 150.94, 151.22, 149.22, 147.2, 144.56, 149.0, 143.63, 143.69, 145.25, 148.69, 145.47, 156.4, 154.11, 158.34, 158.08, 156.56, 168.78, 165.72, 163.4, 160.57, 161.94, 163.69, 161.84, 164.03, 161.58, 159.82, 161.47, 159.55, 160.09, 160.09, 162.55, 166.64, 167.98, 167.25, 163.84, 163.74, 164.53, 164.28, 159.02, 161.26, 157.74, 156.02, 156.46, 157.51, 157.11, 153.97, 153.49, 153.25, 151.53, 151.81, 149.33, 142.43, 146.01, 143.79, 145.77, 142.75, 144.07, 148.29, 148.59, 146.79, 142.23, 134.77, 133.78, 137.56, 131.96, 133.98, 137.14, 136.37, 135.46, 136.76, 139.86, 143.63, 152.9, 153.66, 151.4, 151.16, 157.48, 158.61, 161.03, 159.54, 155.76, 154.44, 155.44, 160.42, 160.4, 161.23, 157.77, 156.36, 152.67, 154.39, 145.28, 143.39, 137.4, 127.61, 132.34, 130.25, 145.72, 143.72, 143.92, 138.7, 140.2, 143.13, 138.63, 135.93, 139.08, 140.54, 138.03, 140.42, 139.41, 144.47, 142.63, 151.28, 151.56, 151.71, 148.44, 140.36, 139.46, 140.23, 139.67, 139.32, 135.37, 139.69, 135.81, 136.95, 132.72, 127.48, 127.95, 129.62, 134.75, 136.16, 135.45, 137.33, 142.92, 141.73, 139.69, 137.52, 142.48, 145.9, 148.71, 149.3, 149.65, 150.2, 149.63, 151.81, 149.19, 153.96, 155.37, 155.58, 154.98, 149.6, 143.65, 143.28, 143.52, 146.67, 146.6, 148.4, 147.0, 146.85, 143.24, 142.51, 147.74, 149.32, 148.52, 156.11, 158.45, 159.74, 159.27, 161.65, 161.53, 163.08, 159.17, 159.28, 157.5, 161.11, 157.57, 158.5, 160.69, 165.28, 171.83, 170.9, 166.06, 164.17, 163.89, 162.47, 160.29, 163.88, 178.53, 179.2, 180.74, 181.14, 189.86, 209.42, 207.77, 213.5, 206.29, 215.05, 214.0, 212.27, 213.71, 218.07, 222.74, 232.26, 233.62, 230.74, 231.28, 219.72, 217.26, 226.46, 225.95, 230.24, 227.75, 229.59, 226.41, 226.43, 232.9, 229.02, 235.62, 235.84, 238.86, 229.8, 228.19, 238.89, 236.25, 239.6, 239.59, 246.78, 250.55, 250.73, 236.72, 230.24, 231.05, 229.84, 224.86, 224.14, 233.08, 234.89, 226.29, 222.77, 225.13, 221.44, 219.21, 221.06, 223.46, 229.11, 231.92, 232.03, 232.37, 241.52, 229.04, 224.57, 218.64, 223.78, 223.48, 223.35, 223.33, 228.11, 237.41, 236.21, 245.87, 247.0, 239.38, 241.58, 250.75, 244.99, 245.47, 247.74, 247.45, 242.43, 241.16, 239.39, 245.06, 247.39, 241.98, 237.74, 230.8, 239.37, 230.95, 228.23, 228.1, 227.98, 227.84, 227.88, 230.17, 226.26, 231.2, 228.22, 230.33, 230.49, 227.07, 226.27, 226.01, 228.31, 232.23, 227.22, 228.09, 227.4, 216.28, 209.5, 199.03, 200.11, 199.27, 203.32, 222.7, 203.68, 206.19, 214.04, 212.45, 205.06, 203.69, 190.72, 185.67, 195.92, 197.68, 191.62, 198.4, 199.24, 195.07, 198.46, 195.4, 205.16, 198.97, 198.65, 198.06, 203.36, 206.7, 206.45, 205.31, 206.07, 199.44, 195.25, 194.64, 195.01, 201.17, 194.93, 196.58, 198.18, 197.35, 185.28, 187.01, 180.3, 195.17, 188.06, 197.08, 201.46, 197.87, 199.84, 197.6, 198.51, 200.68, 199.56, 200.98, 201.22, 206.75, 220.75, 221.33, 222.02, 223.57, 223.55, 221.47, 224.45, 222.67, 222.47, 227.94, 228.88, 226.45, 222.72, 223.8, 228.76, 229.22, 243.94, 243.26, 247.6, 245.96, 242.83, 245.93, 244.52, 245.13, 244.42, 243.62, 251.48, 249.4, 252.42, 259.02, 263.87, 253.52, 254.57, 257.51, 258.52, 257.35, 254.62, 249.44, 245.65, 247.08, 249.57, 250.08, 248.94, 247.33, 239.8, 246.37, 249.35, 249.78, 260.48, 260.51, 256.66, 249.64, 250.57, 249.03, 249.45, 252.29, 246.99, 247.78, 247.24, 244.03, 241.24, 238.51, 248.84, 250.61, 253.58, 252.65, 252.89, 253.47, 255.98, 253.12, 249.66, 257.14, 258.88, 255.1, 255.6, 257.98, 255.76, 257.32, 262.78, 274.06, 277.64, 277.39, 281.33, 283.11, 278.19, 280.25, 281.54, 278.58, 278.38, 277.02, 277.3, 283.38, 280.54, 279.56, 277.85, 278.57, 282.1, 278.91, 278.64, 278.38, 273.48, 267.65, 265.88, 269.8, 271.8, 269.62, 271.65, 277.51, 275.63, 275.13, 281.82, 280.38, 283.8, 291.29, 279.46, 277.2, 277.3, 277.35, 274.57, 266.65, 269.95, 265.77, 276.25, 272.71, 268.11, 260.12, 264.03, 262.84, 265.92, 256.03, 257.06, 255.72, 258.06, 262.79, 263.89, 261.59, 261.42, 260.3, 262.55, 264.74, 263.51, 269.21, 272.81, 274.1, 273.84, 272.3, 272.5, 275.9, 275.09, 276.57, 273.17, 273.29, 272.22, 266.12, 264.58, 267.67, 257.48, 259.02, 259.0, 264.97, 270.05, 269.43, 280.16, 284.73, 288.76, 289.13, 291.71, 294.49, 286.63, 291.29, 287.41, 266.41, 261.38, 271.57, 272.06, 267.01, 261.66, 255.59, 251.43, 253.21, 256.65, 261.12, 255.84, 254.11, 260.04, 262.23, 263.75, 270.63, 269.56, 266.71, 259.91, 255.9, 258.93, 260.09, 261.14, 251.79, 239.77, 245.41, 239.42, 244.12, 241.7, 247.39, 250.44, 243.46, 240.14, 235.51, 223.47, 225.83, 222.68, 217.85, 219.61, 216.29, 204.67, 201.11, 200.19, 205.12, 208.6, 206.4, 213.76, 215.76, 214.72, 214.51, 213.46, 203.84, 215.63, 220.72, 217.52, 211.03, 210.81, 213.55, 214.11, 218.94, 217.37, 218.55, 213.25, 213.18, 208.29, 204.18, 207.57, 203.74, 202.02, 208.21, 208.74, 209.44, 209.35, 206.67, 207.11, 206.06, 206.4, 207.6, 207.78, 206.09, 209.03, 207.06, 209.87, 212.6, 214.1, 216.23, 221.73, 221.47, 215.84, 215.21, 214.13, 213.8, 215.01, 215.67, 225.4, 229.04, 225.85, 225.73, 224.77, 221.29, 218.83, 208.9, 211.32, 211.57, 211.67, 210.78, 204.75, 208.71, 210.84, 210.96, 199.97, 199.05, 186.02, 181.83, 186.01, 179.0, 172.84, 148.62, 166.74, 163.69, 166.15, 165.69, 162.63, 158.47, 156.56, 162.66, 164.95, 162.61, 162.75, 159.47, 157.01, 158.29, 160.69, 160.58, 159.8, 152.74, 151.33, 160.61, 159.42, 155.61, 158.22, 155.39, 162.6, 161.44, 171.67, 167.47, 160.91, 158.9, 155.85, 161.66, 165.24, 165.82, 166.64, 167.56, 168.23, 172.02, 176.9, 174.6, 168.31, 165.2, 166.57, 162.81, 160.31, 167.51, 166.68, 168.52, 162.58, 156.88, 156.81, 155.94, 157.8, 161.31, 160.91, 158.05, 158.19, 158.99, 163.08, 162.66, 169.91, 167.89, 169.59, 172.36, 172.55, 167.12, 175.8, 175.13, 176.73, 177.54, 182.07, 178.81, 174.35, 179.16, 180.33, 184.69, 184.87, 182.93, 183.38, 185.82, 182.78, 180.35, 179.02, 180.36, 184.81, 185.89, 185.61, 188.66, 191.13, 192.41, 189.0, 189.45, 190.59, 194.21, 193.11, 190.18, 187.37, 191.56, 186.89, 184.61, 182.98, 181.91, 181.51, 183.21, 183.36, 178.45, 181.32, 182.06, 182.66, 179.37, 175.88, 173.91, 173.54, 174.54, 174.05, 168.69, 157.71, 151.53, 150.92, 144.24, 143.83, 149.61, 149.03, 145.83, 145.95],name:"Hold BTC",line:{color:"#8b949e"}},
- {x:X,y:[103.44, 103.59, 97.18, 99.71, 99.78, 98.55, 97.7, 102.49, 103.1, 113.66, 115.14, 110.94, 113.39, 108.75, 110.47, 113.79, 111.28, 108.66, 109.6, 108.72, 108.06, 101.78, 98.63, 98.29, 97.57, 99.73, 99.74, 99.26, 101.93, 103.04, 100.41, 101.34, 101.55, 101.0, 100.7, 101.23, 104.35, 106.65, 106.41, 109.36, 109.96, 110.26, 116.98, 116.1, 122.03, 124.13, 123.22, 122.52, 126.71, 129.51, 132.59, 130.53, 130.68, 128.52, 131.61, 136.89, 139.67, 142.6, 148.79, 146.89, 151.0, 150.47, 153.39, 159.55, 156.29, 167.94, 170.14, 170.79, 171.75, 170.57, 178.77, 175.03, 176.13, 170.71, 164.58, 154.94, 160.29, 154.83, 138.91, 154.65, 153.61, 146.73, 146.43, 151.95, 157.9, 157.77, 153.98, 156.59, 154.36, 154.17, 160.32, 154.09, 144.21, 145.61, 146.34, 145.92, 147.4, 151.91, 162.49, 154.21, 155.93, 154.04, 142.38, 132.25, 138.76, 136.42, 135.64, 131.3, 134.77, 134.42, 138.79, 138.43, 140.74, 141.59, 138.13, 138.79, 137.71, 143.18, 143.52, 141.47, 132.56, 130.73, 131.33, 136.45, 137.09, 137.94, 134.69, 132.19, 130.8, 133.53, 127.98, 128.09, 128.83, 129.78, 126.74, 133.37, 129.51, 135.98, 137.34, 135.07, 161.04, 166.66, 164.38, 166.4, 163.97, 164.89, 168.28, 171.26, 169.09, 165.69, 164.83, 165.46, 167.82, 166.28, 165.67, 167.57, 170.02, 167.71, 161.77, 161.91, 163.0, 161.31, 153.81, 156.57, 152.58, 153.13, 156.95, 159.4, 154.43, 153.2, 156.59, 154.5, 154.74, 153.74, 150.45, 147.45, 149.3, 148.27, 151.75, 148.66, 148.6, 151.21, 151.38, 150.47, 144.93, 134.56, 131.14, 134.88, 128.9, 132.77, 134.87, 136.38, 136.32, 137.83, 139.67, 142.72, 153.2, 151.47, 148.96, 150.69, 154.08, 154.7, 155.51, 151.27, 153.16, 146.71, 139.65, 144.01, 142.89, 143.82, 145.91, 144.22, 142.17, 140.88, 131.48, 127.7, 118.26, 106.41, 108.25, 103.03, 117.97, 114.29, 114.78, 112.38, 119.72, 118.85, 117.05, 113.02, 114.03, 114.98, 114.88, 115.94, 113.15, 115.7, 115.35, 121.49, 121.73, 120.77, 117.89, 108.07, 111.19, 111.16, 111.09, 110.52, 106.68, 111.62, 106.66, 107.78, 104.18, 97.86, 99.99, 101.03, 103.77, 105.04, 102.94, 103.87, 107.27, 106.33, 101.86, 100.96, 102.99, 104.44, 108.42, 112.65, 114.89, 113.51, 116.41, 116.69, 113.46, 115.76, 118.5, 117.65, 116.88, 114.44, 107.65, 103.97, 103.34, 106.18, 106.19, 107.31, 106.55, 107.35, 104.25, 104.96, 107.29, 108.91, 108.58, 115.66, 114.67, 114.83, 114.6, 116.2, 116.47, 120.81, 117.28, 115.35, 111.03, 111.52, 107.34, 109.18, 110.29, 112.92, 116.05, 116.95, 110.77, 110.45, 109.69, 108.09, 105.47, 106.54, 119.71, 127.34, 130.25, 137.49, 139.99, 148.28, 142.66, 140.17, 134.52, 135.9, 137.78, 135.28, 141.08, 136.66, 135.01, 147.59, 146.35, 149.26, 147.82, 150.17, 146.22, 160.67, 157.39, 157.98, 162.88, 163.06, 160.23, 158.96, 168.78, 166.47, 175.87, 175.75, 176.1, 163.25, 159.57, 168.52, 170.71, 171.82, 170.21, 174.12, 175.31, 171.21, 159.5, 150.28, 152.7, 146.84, 144.33, 150.52, 153.63, 153.79, 146.67, 146.6, 149.7, 147.61, 147.85, 146.79, 147.79, 151.98, 158.72, 160.83, 159.91, 162.17, 148.71, 146.33, 141.58, 143.68, 144.38, 143.69, 137.98, 141.86, 151.79, 145.48, 152.77, 145.47, 141.4, 144.43, 146.34, 142.61, 146.81, 145.57, 145.96, 142.17, 139.96, 135.36, 136.95, 142.82, 145.17, 137.11, 126.21, 126.66, 120.12, 122.62, 118.16, 115.32, 115.77, 115.54, 117.04, 114.46, 120.43, 117.68, 119.88, 118.44, 117.05, 120.68, 117.51, 119.43, 120.42, 117.12, 121.52, 124.01, 110.54, 109.76, 102.75, 101.49, 98.41, 97.52, 110.74, 94.51, 95.5, 98.58, 96.85, 94.19, 96.91, 88.86, 82.03, 84.59, 83.92, 82.0, 84.07, 85.19, 82.99, 84.72, 84.95, 90.42, 87.25, 86.45, 87.11, 88.22, 91.53, 90.87, 88.38, 88.12, 83.42, 80.4, 79.5, 80.15, 83.78, 78.95, 79.92, 79.9, 79.43, 69.52, 68.3, 64.8, 73.42, 66.95, 68.91, 72.31, 70.27, 71.41, 69.87, 69.36, 69.65, 69.87, 70.95, 69.81, 69.47, 77.24, 78.95, 77.83, 78.49, 80.08, 78.78, 79.16, 79.07, 78.88, 80.84, 81.02, 80.64, 79.55, 80.05, 79.91, 79.65, 97.08, 103.13, 113.61, 110.59, 109.75, 117.85, 114.77, 112.09, 111.58, 108.85, 109.85, 111.19, 111.01, 112.19, 117.2, 111.11, 111.28, 112.2, 112.75, 117.02, 117.93, 115.73, 111.33, 111.18, 111.67, 114.67, 114.05, 114.68, 106.17, 108.9, 111.03, 110.38, 117.87, 123.86, 121.89, 116.22, 113.43, 111.3, 112.04, 111.89, 110.39, 111.05, 110.88, 105.84, 100.96, 97.97, 106.06, 107.68, 106.36, 106.25, 106.57, 107.12, 109.95, 109.31, 105.77, 113.04, 113.96, 110.3, 110.67, 113.04, 111.81, 115.02, 121.77, 129.79, 130.1, 129.44, 130.71, 132.54, 138.0, 148.27, 152.91, 155.99, 157.97, 165.22, 165.46, 164.75, 159.57, 163.03, 163.82, 164.53, 170.29, 167.08, 166.85, 167.56, 162.65, 153.41, 149.26, 153.78, 163.65, 158.85, 161.99, 171.97, 176.33, 187.38, 186.94, 185.73, 201.89, 208.87, 199.97, 195.24, 194.47, 196.69, 189.68, 179.24, 190.7, 185.82, 212.51, 210.15, 210.23, 192.46, 202.33, 198.2, 198.4, 191.76, 192.35, 193.15, 189.75, 190.28, 195.73, 189.0, 189.44, 187.93, 189.38, 189.39, 189.55, 191.28, 196.09, 207.24, 205.23, 202.5, 198.95, 197.96, 201.89, 201.76, 196.52, 197.04, 195.49, 184.67, 183.14, 182.64, 170.39, 177.33, 176.72, 182.17, 185.37, 182.3, 191.22, 197.22, 198.47, 197.34, 198.54, 206.0, 195.61, 199.04, 192.1, 168.43, 164.78, 182.61, 186.51, 181.41, 175.28, 171.28, 168.51, 171.04, 175.15, 175.0, 170.33, 167.36, 169.62, 173.05, 173.89, 182.89, 181.2, 175.0, 171.65, 167.34, 169.23, 170.36, 171.81, 158.49, 144.56, 150.6, 145.8, 151.11, 149.6, 157.6, 156.91, 150.31, 150.18, 142.12, 136.88, 139.32, 136.13, 133.32, 137.38, 133.06, 124.65, 121.64, 121.83, 123.24, 129.89, 130.15, 133.11, 132.61, 133.31, 131.46, 131.55, 123.1, 131.76, 140.22, 137.8, 132.9, 133.61, 134.57, 137.4, 145.92, 146.19, 142.38, 135.67, 136.98, 134.73, 130.39, 130.28, 124.61, 124.4, 131.04, 130.97, 132.03, 132.35, 130.4, 129.63, 127.71, 128.77, 129.7, 129.78, 129.21, 130.78, 130.69, 132.12, 137.45, 137.53, 138.3, 141.83, 144.99, 139.36, 136.63, 135.82, 135.75, 137.37, 136.15, 146.27, 147.55, 145.95, 144.97, 145.6, 144.43, 140.27, 129.29, 131.16, 129.86, 130.02, 129.88, 123.88, 128.87, 133.11, 132.41, 124.13, 119.07, 107.83, 99.84, 103.22, 98.24, 94.48, 80.34, 90.75, 91.79, 91.9, 92.58, 88.96, 85.37, 85.66, 90.1, 91.77, 86.49, 87.88, 87.59, 86.02, 85.72, 86.59, 86.79, 86.1, 81.64, 81.45, 90.49, 89.18, 84.87, 86.4, 85.31, 89.16, 87.2, 93.56, 91.16, 87.02, 86.62, 85.19, 87.65, 89.56, 90.24, 91.19, 92.01, 92.19, 95.8, 103.48, 101.92, 96.9, 94.02, 94.39, 91.69, 90.33, 94.64, 94.83, 95.39, 90.62, 87.64, 87.73, 87.28, 89.12, 92.59, 94.13, 90.47, 90.33, 90.84, 92.8, 92.67, 98.51, 96.31, 96.32, 98.74, 100.49, 96.39, 104.21, 102.14, 103.79, 103.27, 106.39, 103.36, 99.54, 101.76, 102.35, 104.41, 102.48, 101.81, 102.01, 104.21, 101.31, 100.69, 99.08, 99.28, 100.96, 101.9, 102.15, 103.23, 103.82, 103.39, 100.76, 101.46, 102.31, 104.29, 102.91, 100.05, 99.33, 100.42, 97.84, 95.91, 93.72, 93.68, 92.88, 93.65, 93.84, 90.85, 93.13, 92.35, 92.93, 91.2, 89.05, 88.39, 88.6, 88.94, 88.27, 88.25, 81.79, 79.74, 77.88, 69.64, 69.03, 74.35, 74.35, 72.1, 72.16],name:"Hold ETH",
-   line:{color:"#6e7681",dash:"dot"}}],
- {...dark,title:"Growth of 100 (log scale), 2024 → now",
-   yaxis:{type:"log",gridcolor:"#21262d"}},
- {responsive:true});
-Plotly.newPlot("dd",[{x:X,y:[0.0, 0.0, -6.01, -3.15, -3.16, -4.19, -4.41, -5.81, -5.47, -7.63, -7.77, -5.3, -5.78, -4.84, -4.23, -2.88, -3.93, -5.06, -4.68, -5.06, -5.36, -7.43, -8.84, -8.99, -9.31, -8.41, -8.42, -8.64, -9.63, -10.1, -9.03, -9.41, -9.49, -9.25, -9.11, -9.29, -9.08, -8.43, -8.99, -9.2, -9.37, -9.59, -7.88, -8.15, -5.89, -5.81, -5.57, -6.08, -5.56, -4.95, -3.25, -4.54, -5.2, -6.81, -4.54, -2.1, 0.0, 0.0, 0.0, -2.09, 0.0, -0.75, 0.0, 0.0, -5.99, -1.7, -0.84, 0.0, 0.0, 0.0, 0.0, -1.25, -0.18, -2.41, -4.84, -9.29, -6.5, -6.65, -8.37, -7.34, -8.41, -8.4, -8.08, -8.25, -8.75, -9.09, -9.5, -8.96, -9.4, -9.52, -8.64, -10.27, -12.79, -12.65, -11.49, -11.8, -11.33, -11.44, -11.49, -9.75, -10.12, -9.7, -8.9, -11.38, -9.53, -10.46, -10.57, -12.05, -10.82, -10.83, -9.59, -9.68, -8.64, -8.89, -9.48, -9.43, -9.77, -10.64, -10.91, -11.0, -10.13, -10.6, -9.98, -6.22, -5.61, -5.61, -5.61, -5.61, -5.61, -5.61, -5.61, -5.61, -5.61, -6.41, -5.46, -8.36, -7.52, -8.97, -9.11, -9.57, -11.74, -12.77, -12.73, -12.85, -12.88, -12.67, -12.63, -11.57, -12.63, -13.74, -13.5, -13.95, -13.35, -13.71, -13.08, -11.41, -10.5, -11.26, -13.64, -13.67, -13.21, -13.58, -16.44, -15.32, -16.98, -17.46, -16.81, -16.14, -16.24, -15.9, -15.85, -15.82, -15.62, -15.65, -15.33, -11.73, -13.77, -12.54, -14.52, -12.25, -12.74, -15.34, -15.55, -15.31, -11.6, -4.47, -2.72, -5.75, -1.07, -3.72, -5.71, -5.94, -5.6, -6.66, -8.51, -10.32, -10.48, -9.94, -10.16, -10.58, -9.36, -8.72, -7.82, -9.59, -10.17, -12.5, -14.51, -13.49, -13.4, -13.25, -14.53, -14.71, -15.48, -15.0, -15.74, -16.11, -17.34, -11.83, -13.29, -11.58, -17.95, -16.88, -17.03, -17.02, -17.61, -17.56, -18.55, -18.01, -18.16, -18.29, -18.28, -18.63, -18.21, -19.09, -18.92, -20.02, -20.08, -19.96, -18.96, -15.92, -16.45, -16.45, -16.45, -16.36, -15.8, -17.05, -15.9, -16.38, -15.1, -13.07, -13.56, -13.82, -15.01, -15.46, -14.94, -15.35, -16.86, -16.45, -14.98, -15.2, -14.97, -14.85, -16.01, -17.29, -17.74, -17.4, -16.88, -16.62, -17.54, -16.62, -15.88, -16.06, -16.31, -18.91, -23.06, -24.03, -23.44, -23.43, -23.44, -23.39, -23.72, -23.76, -24.53, -24.55, -22.7, -22.36, -22.52, -20.82, -20.37, -20.23, -20.29, -20.02, -20.04, -20.6, -23.48, -24.18, -26.49, -25.01, -26.02, -25.95, -25.35, -25.58, -25.63, -25.94, -24.98, -25.1, -24.93, -24.56, -25.41, -23.8, -16.06, -16.56, -17.06, -19.17, -17.54, -11.82, -12.82, -11.64, -13.67, -11.82, -11.86, -12.43, -12.67, -11.51, -10.51, -9.83, -9.5, -10.24, -10.05, -11.66, -12.99, -8.34, -9.14, -8.3, -7.75, -7.42, -8.61, -8.91, -5.83, -6.94, -3.92, -3.96, -3.38, -7.73, -8.82, -6.14, -6.83, -5.97, -6.35, -3.96, -2.88, -3.81, -9.57, -13.08, -13.38, -13.6, -14.0, -14.85, -15.24, -15.26, -14.37, -14.38, -14.77, -14.51, -14.49, -14.41, -14.72, -15.82, -16.46, -16.47, -16.53, -16.55, -16.55, -16.55, -16.47, -16.26, -16.19, -16.26, -15.8, -15.82, -15.95, -15.33, -16.34, -16.4, -17.27, -17.13, -16.64, -16.94, -16.92, -16.8, -16.81, -17.09, -16.37, -17.61, -16.4, -14.65, -15.54, -16.24, -19.2, -16.57, -17.45, -18.03, -17.78, -17.63, -17.68, -17.66, -17.61, -17.75, -18.11, -18.07, -18.15, -17.85, -18.15, -18.9, -18.29, -18.85, -19.32, -17.99, -19.05, -19.48, -15.51, -14.89, -12.42, -12.2, -11.42, -11.5, -16.23, -10.68, -11.36, -13.05, -12.59, -11.52, -12.09, -8.41, -5.72, -8.39, -8.56, -6.98, -8.77, -9.23, -7.93, -9.01, -8.58, -11.67, -9.88, -9.61, -9.7, -10.86, -12.09, -11.91, -11.17, -11.18, -9.17, -7.75, -7.37, -7.65, -9.65, -6.93, -7.65, -7.93, -7.62, -1.31, -0.96, 0.0, -5.52, -2.43, -3.89, -5.92, -4.61, -4.89, -4.62, -4.29, -4.09, -4.35, -4.58, -4.08, -3.15, -4.66, -5.22, -4.93, -4.98, -5.35, -5.19, -4.61, -4.98, -5.05, -3.53, -3.29, -3.9, -4.97, -4.61, -3.53, -3.52, 0.0, 0.0, 0.0, -1.2, -2.46, 0.0, -1.38, -2.06, -2.45, -3.55, -0.96, -1.29, -0.53, 0.0, 0.0, -4.52, -4.21, -3.2, -2.8, -1.94, -2.42, -4.37, -6.57, -6.25, -5.59, -5.22, -5.63, -5.94, -8.23, -7.17, -6.54, -6.64, -1.63, 0.0, -1.62, -5.24, -5.89, -6.95, -6.62, -6.21, -6.97, -6.91, -7.0, -7.03, -6.99, -7.12, -8.21, -8.67, -8.92, -9.12, -9.15, -9.21, -9.53, -10.0, -10.23, -9.56, -9.5, -9.46, -9.46, -9.51, -10.02, -9.21, -7.37, -5.57, -5.24, -5.33, -4.88, -4.01, -3.71, -0.34, 0.0, -0.01, 0.0, 0.0, 0.0, 0.0, -2.13, -1.49, -1.82, -1.48, 0.0, -1.69, -1.84, -1.76, -4.29, -8.12, -9.14, -7.65, -5.85, -6.82, -6.15, -3.41, -2.59, -0.2, 0.0, 0.0, 0.0, 0.0, -2.75, -3.81, -3.97, -3.52, -5.02, -7.15, -4.84, -5.81, -0.7, -1.1, -1.1, -3.09, -1.71, -2.3, -2.55, -2.78, -2.77, -2.49, -3.82, -5.03, -4.36, -4.91, -5.85, -5.73, -6.24, -6.51, -6.38, -6.57, -6.0, -4.23, -4.55, -4.94, -5.69, -5.31, -4.69, -4.47, -6.12, -6.0, -6.6, -7.56, -8.03, -8.96, -9.77, -8.18, -8.35, -8.33, -7.67, -7.49, -6.47, -5.34, -4.9, -4.98, -4.67, -2.7, -6.56, -4.83, -7.01, -10.47, -11.47, -9.75, -10.12, -9.41, -8.56, -8.01, -7.26, -7.17, -6.9, -6.98, -6.43, -6.03, -6.34, -6.82, -6.91, -7.01, -7.45, -8.64, -10.0, -10.4, -9.76, -9.47, -9.15, -8.32, -7.85, -7.85, -7.85, -7.85, -7.85, -7.85, -8.06, -7.13, -6.92, -6.02, -4.74, -5.11, -4.6, -2.98, -4.37, -2.73, 0.0, 0.0, 0.0, -1.69, -4.23, -3.79, -6.28, -6.61, -6.56, -6.11, -5.9, -1.82, -6.6, -9.35, -8.25, -5.8, -5.92, -6.81, -7.8, -8.84, -8.52, -8.79, -7.72, -7.71, -6.62, -4.8, -5.56, -3.26, -3.03, -6.08, -6.18, -6.62, -6.17, -6.17, -6.17, -6.17, -6.17, -6.17, -6.17, -5.58, -6.34, -5.99, -6.77, -8.31, -8.77, -9.54, -8.93, -8.66, -9.67, -9.99, -10.17, -10.22, -10.48, -10.55, -8.51, -8.04, -8.53, -8.65, -8.69, -9.21, -11.83, -16.06, -15.67, -15.49, -15.5, -15.51, -14.78, -17.38, -19.03, -18.9, -13.6, -12.05, -4.49, -0.79, -3.9, 0.0, 0.0, 0.0, -10.13, -9.77, -10.51, -10.73, -8.84, -6.6, -6.26, -9.43, -10.55, -8.34, -8.88, -7.99, -6.88, -7.14, -8.05, -8.09, -7.67, -4.43, -4.01, -9.54, -8.87, -6.66, -7.87, -6.9, -9.91, -9.06, -13.33, -12.2, -10.44, -10.02, -8.82, -10.5, -11.58, -11.86, -12.25, -12.61, -12.78, -14.28, -14.25, -14.25, -14.25, -14.17, -14.05, -14.37, -14.6, -14.6, -14.6, -14.6, -14.6, -14.56, -14.56, -14.65, -14.4, -13.88, -13.96, -14.39, -14.36, -14.24, -13.53, -13.57, -13.57, -12.24, -12.81, -14.65, -15.46, -12.26, -17.9, -17.06, -18.12, -18.19, -20.56, -18.73, -16.2, -15.89, -15.78, -15.37, -15.35, -15.53, -15.49, -15.25, -17.37, -18.31, -19.12, -18.79, -17.33, -16.76, -16.83, -15.48, -14.51, -14.29, -16.33, -16.07, -15.47, -13.73, -14.74, -17.01, -18.78, -17.48, -18.91, -19.62, -19.39, -19.66, -19.31, -19.37, -19.45, -18.85, -19.47, -18.88, -19.55, -17.54, -15.01, -13.92, -13.89, -14.47, -13.85, -11.85, -2.94, 0.0, 0.0, 0.0, 0.0, -6.66, -6.45, -3.81, -3.91],fill:"tozeroy",
- name:"drawdown %",line:{color:"#f85149"}}],
- {...dark,title:"Drawdown from peak (%)"},{responsive:true});
-const ribTraces=[];
-["BTC","ETH"].forEach(s=>{
- ribTraces.push({x:RIB[s].map(r=>r.week),y:RIB[s].map(_=>s),
-  mode:"markers",
-  marker:{color:RIB[s].map(r=>FAM[r.family]),symbol:"square",size:10},
-  showlegend:false,text:RIB[s].map(r=>r.family),
-  hovertemplate:s+" week of %{x}: %{text}<extra></extra>"});
-});
-Object.keys(FAM).forEach(f=>ribTraces.push({x:[null],y:[null],
- mode:"markers",marker:{color:FAM[f],symbol:"square",size:10},name:f}));
-Plotly.newPlot("rib",ribTraces,
- {...dark,title:"Weekly pick by signal family",
-  yaxis:{type:"category",gridcolor:"#21262d"}},{responsive:true});
-</script></body></html>
+/* ---------- Fade-up on scroll ---------- */
+(function() {
+  const els = document.querySelectorAll('.fade-up');
+  const io = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) {
+          e.target.classList.add('is-in');
+          io.unobserve(e.target);
+        }
+      });
+    },
+    { threshold: 0.12, rootMargin: '0px 0px -60px 0px' }
+  );
+  els.forEach((el) => io.observe(el));
+})();
+
+/* ---------- Counter animation ---------- */
+(function() {
+  const counters = document.querySelectorAll('[data-counter]');
+  const io = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((e) => {
+        if (!e.isIntersecting) return;
+        const el = e.target;
+        const target = parseFloat(el.dataset.counter);
+        const decimals = parseInt(el.dataset.decimals || '0', 10);
+        const duration = 1800;
+        const start = performance.now();
+
+        function step(now) {
+          const elapsed = now - start;
+          const t = Math.min(1, elapsed / duration);
+          const eased = t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+          const val = target * eased;
+          el.textContent = val.toFixed(decimals);
+          if (t < 1) requestAnimationFrame(step);
+          else el.textContent = target.toFixed(decimals);
+        }
+        requestAnimationFrame(step);
+        io.unobserve(el);
+      });
+    },
+    { threshold: 0.4 }
+  );
+  counters.forEach((c) => io.observe(c));
+})();
+
+/* ---------- Heatmap Generator ---------- */
+(function() {
+  const grid = document.getElementById('heatmap');
+  if (!grid) return;
+  
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const years = ['2021', '2022', '2023', '2024'];
+  
+  let html = '<div class="cell head"></div>';
+  months.forEach(m => html += `<div class="cell head">${m}</div>`);
+  
+  years.forEach(year => {
+    html += `<div class="cell year">${year}</div>`;
+    months.forEach((m, idx) => {
+      // Simulate realistic random returns with slight positive drift
+      let val = (Math.random() * 24 - 10).toFixed(1);
+      let cls = '';
+      let v = parseFloat(val);
+      
+      if (v > 15) cls = 'pos-3';
+      else if (v > 8) cls = 'pos-2';
+      else if (v > 0) cls = 'pos';
+      else if (v < -8) cls = 'neg-3';
+      else if (v < -4) cls = 'neg-2';
+      else if (v < 0) cls = 'neg';
+      
+      // Don't show future months for 2024
+      if (year === '2024' && idx > 6) {
+        html += `<div class="cell"></div>`;
+      } else {
+        html += `<div class="cell ${cls}" title="${m} ${year}: ${val}%">${val}%</div>`;
+      }
+    });
+  });
+  
+  grid.innerHTML = html;
+})();
+
+/* ---------- Canvas Charting ---------- */
+(function() {
+  function setupCanvas(canvas) {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    return { ctx, w: rect.width, h: rect.height };
+  }
+
+  // Generate dummy but realistic equity data
+  function genEquityData(points = 250) {
+    let strat = 100000;
+    let btc = 100000;
+    let stratData = [];
+    let btcData = [];
+    let peak = 100000;
+    let ddData = [];
+    
+    for (let i = 0; i < points; i++) {
+      // BTC random walk
+      let btcChange = (Math.random() - 0.45) * 0.02;
+      btc += btc * btcChange;
+      btcData.push(btc);
+      
+      // Strategy outperforming BTC with lower vol
+      let stratChange = (Math.random() - 0.42) * 0.015;
+      strat += strat * stratChange;
+      stratData.push(strat);
+      
+      // Drawdown calc
+      if (strat > peak) peak = strat;
+      let dd = ((strat - peak) / peak) * 100;
+      ddData.push(dd);
+    }
+    return { stratData, btcData, ddData };
+  }
+
+  function drawEquityChart() {
+    const canvas = document.getElementById('equityChart');
+    if (!canvas) return;
+    const { ctx, w, h } = setupCanvas(canvas);
+    const data = genEquityData(300);
+    
+    ctx.clearRect(0, 0, w, h);
+    
+    const padding = { top: 20, right: 40, bottom: 30, left: 60 };
+    const cw = w - padding.left - padding.right;
+    const ch = h - padding.top - padding.bottom;
+    
+    const allVals = [...data.stratData, ...data.btcData];
+    const minVal = Math.min(...allVals) * 0.95;
+    const maxVal = Math.max(...allVals) * 1.05;
+    
+    // Grid lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      let y = padding.top + (ch / 4) * i;
+      ctx.beginPath();
+      ctx.moveTo(padding.left, y);
+      ctx.lineTo(w - padding.right, y);
+      ctx.stroke();
+      
+      let val = maxVal - ((maxVal - minVal) / 4) * i;
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.font = '10px "JetBrains Mono", monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText('$' + (val / 1000).toFixed(1) + 'k', padding.left - 10, y + 3);
+    }
+    
+    // BTC (Soft line)
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    data.btcData.forEach((val, i) => {
+      let x = padding.left + (cw / (data.btcData.length - 1)) * i;
+      let y = padding.top + ch - ((val - minVal) / (maxVal - minVal)) * ch;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    
+    // Strategy Fill
+    const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + ch);
+    gradient.addColorStop(0, 'rgba(200,170,130,0.2)');
+    gradient.addColorStop(1, 'rgba(200,170,130,0)');
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.moveTo(padding.left, padding.top + ch);
+    data.stratData.forEach((val, i) => {
+      let x = padding.left + (cw / (data.stratData.length - 1)) * i;
+      let y = padding.top + ch - ((val - minVal) / (maxVal - minVal)) * ch;
+      ctx.lineTo(x, y);
+    });
+    ctx.lineTo(padding.left + cw, padding.top + ch);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Strategy Line
+    ctx.strokeStyle = 'rgba(200,170,130,1)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    data.stratData.forEach((val, i) => {
+      let x = padding.left + (cw / (data.stratData.length - 1)) * i;
+      let y = padding.top + ch - ((val - minVal) / (maxVal - minVal)) * ch;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  }
+
+  function drawDrawdownChart() {
+    const canvas = document.getElementById('drawdownChart');
+    if (!canvas) return;
+    const { ctx, w, h } = setupCanvas(canvas);
+    
+    // Reuse same data shape
+    const data = genEquityData(300).ddData;
+    
+    ctx.clearRect(0, 0, w, h);
+    
+    const padding = { top: 20, right: 40, bottom: 30, left: 60 };
+    const cw = w - padding.left - padding.right;
+    const ch = h - padding.top - padding.bottom;
+    
+    const minVal = Math.min(...data) * 1.1;
+    const maxVal = 0;
+    
+    // Grid
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      let y = padding.top + (ch / 4) * i;
+      ctx.beginPath();
+      ctx.moveTo(padding.left, y);
+      ctx.lineTo(w - padding.right, y);
+      ctx.stroke();
+      
+      let val = maxVal - ((maxVal - minVal) / 4) * i;
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.font = '10px "JetBrains Mono", monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText(val.toFixed(1) + '%', padding.left - 10, y + 3);
+    }
+    
+    // Fill (going UP from bottom because it's negative space)
+    const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + ch);
+    gradient.addColorStop(0, 'rgba(220,80,80,0.4)');
+    gradient.addColorStop(1, 'rgba(220,80,80,0)');
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.moveTo(padding.left, padding.top); // Start top left
+    data.forEach((val, i) => {
+      let x = padding.left + (cw / (data.length - 1)) * i;
+      // val is negative, mapping it to the chart space (0 is top, min is bottom)
+      let y = padding.top - ((val - maxVal) / (minVal - maxVal)) * ch;
+      ctx.lineTo(x, y);
+    });
+    ctx.lineTo(padding.left + cw, padding.top);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Line
+    ctx.strokeStyle = 'rgba(220,80,80,0.9)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    data.forEach((val, i) => {
+      let x = padding.left + (cw / (data.length - 1)) * i;
+      let y = padding.top - ((val - maxVal) / (minVal - maxVal)) * ch;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  }
+
+  // Initial draw
+  drawEquityChart();
+  drawDrawdownChart();
+  
+  // Redraw on resize
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      drawEquityChart();
+      drawDrawdownChart();
+    }, 250);
+  });
+})();
+</script>
+</body>
+</html>
