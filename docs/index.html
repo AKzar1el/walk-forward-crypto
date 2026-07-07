@@ -1099,7 +1099,7 @@ footer .bottom .disclaimer {
   <div class="container">
     <div class="eyebrow fade-up">
       <span class="line"></span>
-      <span>Walk-Forward Optimization · Crypto Markets · v2.4</span>
+      <span>Walk-Forward Optimization · BTC + ETH · Paper-Traded</span>
     </div>
     <h1 id="hero-title">WALK-FORWARD EDGE</h1>
     <p class="subtitle fade-up delay-1">
@@ -1162,7 +1162,7 @@ footer .bottom .disclaimer {
           <li>Slippage, fees, funding routinely ignored</li>
           <li>Reported Sharpe is in-sample Sharpe</li>
         </ul>
-        <div class="result">Sharpe: 3.4 — and almost certainly a lie.</div>
+        <div class="result">Reported Sharpe: flattering — and almost certainly a lie.</div>
       </div>
       <div class="card good fade-up delay-1">
         <div class="badge accent">WALK-FORWARD</div>
@@ -1192,67 +1192,62 @@ footer .bottom .disclaimer {
         </div>
         <h2 class="section-headline fade-up delay-1">Train, test,<br>roll, repeat.</h2>
         <p class="section-sub fade-up delay-2">
-          Walk-forward optimization splits history into overlapping windows.
-          Each strategy is fit on a training window, then evaluated on the
-          forward out-of-sample window. The anchor advances, the loop repeats,
-          and OOS returns aggregate into the only equity curve that matters —
-          the one built from trades the model never saw during fitting.
+          Each week the system scores a fixed zoo of 24 configurations on the
+          trailing 30-day window, trades the average of the top 3 out-of-sample
+          for the next week, then rolls forward and re-ranks. OOS returns
+          aggregate into the only equity curve that matters — the one built
+          from weeks the selection never saw when it was chosen.
         </p>
       </div>
       <div class="right">
         <div class="step fade-up">
-          <div class="index">STEP 01 — TRAIN</div>
-          <h3>Fit on the in-sample window</h3>
+          <div class="index">STEP 01 — SCORE</div>
+          <h3>Rank the zoo on the trailing window</h3>
           <p>
-            Parameters are calibrated across N days of historical data using
-            bounded grid search. The optimizer maximises a deflated Sharpe
-            objective that penalises parameter fragility and over-fitted
-            complexity.
+            Every Monday 00:00 UTC, each coin's fixed zoo of 24 configurations
+            (trend EMA crosses, Donchian breakouts, mean-reversion, and cash)
+            is ranked by Sharpe over the trailing 30-day window of 4h bars —
+            net of costs and funding.
           </p>
-<div class="diagram">┌──────────────────┐
-│  TRAIN (N days)  │  fit params
-└──────────────────┘</div>
+<div class="diagram">┌───────────────────────┐
+│ 24 configs × 30 days  │  score by Sharpe
+└───────────────────────┘</div>
         </div>
         <div class="step fade-up">
-          <div class="index">STEP 02 — FORWARD TEST</div>
-          <h3>Evaluate on unseen data</h3>
+          <div class="index">STEP 02 — SELECT TOP 3</div>
+          <h3>Trade the top-3 average</h3>
           <p>
-            Fitted parameters are frozen and applied to the next M days of
-            market data — untouched by the optimizer. Every fill, slip, and
-            funding accrual is recorded against this out-of-sample slice.
+            The book trades the equal-weight average of the top 3 ranked
+            configurations for the coming week — a plateau, not the single
+            winner, to blunt the winner's curse. If nothing scores positive,
+            the book sits in cash.
           </p>
-<div class="diagram">┌──────────────────┬────────────┐
-│  TRAIN (N days)  │ TEST (M d) │
-└──────────────────┴────────────┘
-                   ▲ OOS slice</div>
+<div class="diagram">rank #1 #2 #3  →  equal-weight basket
+(else → CASH)</div>
         </div>
         <div class="step fade-up">
-          <div class="index">STEP 03 — ROLL ANCHOR</div>
-          <h3>Advance the window, refit</h3>
+          <div class="index">STEP 03 — SIZE & HOLD</div>
+          <h3>Size to a volatility target, hold one week</h3>
           <p>
-            The anchor steps forward by M days. The training window shifts
-            with it, parameters are re-calibrated on the new in-sample region,
-            and the next forward test begins. No information ever leaks
-            backwards.
+            Position size targets 50% annualized volatility with a 1.5x cap.
+            The selection is frozen and held out-of-sample for the week; every
+            fill, cost (0.15%/side), and real Binance funding event is recorded
+            against it.
           </p>
-<div class="diagram">┌──────────────────┬────────────┐
-│  TRAIN (N days)  │ TEST (M d) │
-└──────────────────┴────────────┘
-       ↓ roll
-   ┌──────────────────┬────────────┐
-   │  TRAIN (N days)  │ TEST (M d) │
-   └──────────────────┴────────────┘</div>
+<div class="diagram">┌──────────────┬────────────┐
+│ SELECT (Mon) │  HOLD 1 wk │  out of sample
+└──────────────┴────────────┘</div>
         </div>
         <div class="step fade-up">
-          <div class="index">STEP 04 — AGGREGATE</div>
-          <h3>Stitch the OOS equity curve</h3>
+          <div class="index">STEP 04 — ROLL & AGGREGATE</div>
+          <h3>Advance a week, refit, stitch</h3>
           <p>
-            The contiguous sequence of forward-test returns is concatenated
-            into the live equity curve. This is the only performance record
-            reported. In-sample metrics are kept for diagnostic purposes —
-            never for presentation.
+            The next Monday the window rolls forward and the zoo is re-ranked
+            on fresh data. The contiguous sequence of weekly out-of-sample
+            returns concatenates into the equity curve — the only performance
+            record reported.
           </p>
-<div class="diagram">[OOS₁][OOS₂][OOS₃][OOS₄] → EQUITY CURVE</div>
+<div class="diagram">[wk₁][wk₂][wk₃][wk₄] → EQUITY CURVE</div>
         </div>
       </div>
     </div>
@@ -1411,25 +1406,9 @@ python -m wf.main \
         <div class="name">ccxt</div>
         <div class="role">Exchange connectivity, OHLCV sync</div>
       </div>
-      </div>
-      
-      <div class="text-block">
-        <h2 class="fade-up">Production CLI Execution</h2>
-        <p class="fade-up delay-1">
-          The walk-forward framework is engineered to run in headless production environments. It retrieves raw tick bars, aggregates them into 4h intervals, and scores configuration weights using a rolling window of recent market behavior.
-        </p>
-        <p class="fade-up delay-2">
-          Every Monday, the ensemble automatically refits, selects the top 3 best-performing configurations, and updates active position execution parameters.
-        </p>
-        <div class="tech-stack fade-up delay-3">
-          <div class="stack-title">Dependencies</div>
-          <div class="chips">
-            <span class="chip">python >= 3.10</span>
-            <span class="chip">pandas >= 2.0</span>
-            <span class="chip">numpy >= 1.24</span>
-            <span class="chip">plotly >= 5.15</span>
-          </div>
-        </div>
+      <div class="cell fade-up delay-3">
+        <div class="name">Plotly</div>
+        <div class="role">Interactive equity + drawdown rendering</div>
       </div>
     </div>
   </div>
