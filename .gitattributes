@@ -1,0 +1,6 @@
+* text=auto eol=lf
+*.png binary
+*.md text eol=lf
+*.html text eol=lf
+*.json text eol=lf
+LICENSE text eol=lf

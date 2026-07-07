@@ -1,0 +1,20 @@
+{
+  "generated_at": "2026-07-07T12:21:12+00:00",
+  "data_through": "2026-06-10",
+  "full_period": {
+    "return_pct": 144.48,
+    "cagr_pct": 44.22,
+    "sharpe": 1.2,
+    "sharpe_se": 0.64,
+    "max_dd_pct": -28.02
+  },
+  "ytd_2026": {
+    "return_pct": 45.08,
+    "sharpe": 2.25,
+    "max_dd_pct": -21.31
+  },
+  "hold": {
+    "btc_pct": 45.95,
+    "eth_pct": -27.84
+  }
+}
