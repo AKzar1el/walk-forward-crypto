@@ -1,0 +1,16 @@
+optional_front_matter:
+  remove_originals: true
+
+defaults:
+  - scope:
+      path: "NUMBERS_LEDGER.md"
+      type: "pages"
+    values:
+      title: "Numbers Ledger — Walk-Forward Crypto"
+      description: "Source provenance and ground-truth references for every published performance figure in the Walk-Forward Crypto case study."
+  - scope:
+      path: "REDACTION_REPORT.md"
+      type: "pages"
+    values:
+      title: "Redaction Report — Walk-Forward Crypto"
+      description: "What the public Walk-Forward Crypto case study deliberately withholds, what it keeps, and how the repository enforces that redaction."
