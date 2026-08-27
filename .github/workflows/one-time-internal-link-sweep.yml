@@ -27,16 +27,8 @@ jobs:
           from pathlib import Path
           p = Path('docs/index.html')
           s = p.read_text()
-          old = '''      Every metric below is computed on the contiguous out-of-sample equity
-      curve. In-sample numbers are kept in the diagnostic logs — never on this
-      page. Open the interactive dashboard for the full equity curve, drawdown
-      profile, and per-asset attribution.'''
-          new = '''      Every metric below is computed on the contiguous out-of-sample equity
-      curve. In-sample numbers are kept in the diagnostic logs — never on this
-      page. Source provenance for every published figure is in the
-      <a href="NUMBERS_LEDGER.html" style="color: var(--accent); text-decoration: none;">numbers ledger</a>.
-      Open the interactive dashboard for the full equity curve, drawdown
-      profile, and per-asset attribution.'''
+          old = "      Every metric below is computed on the contiguous out-of-sample equity\n      curve. In-sample numbers are kept in the diagnostic logs — never on this\n      page. Open the interactive dashboard for the full equity curve, drawdown\n      profile, and per-asset attribution."
+          new = "      Every metric below is computed on the contiguous out-of-sample equity\n      curve. In-sample numbers are kept in the diagnostic logs — never on this\n      page. Source provenance for every published figure is in the\n      <a href=\"NUMBERS_LEDGER.html\" style=\"color: var(--accent); text-decoration: none;\">numbers ledger</a>.\n      Open the interactive dashboard for the full equity curve, drawdown\n      profile, and per-asset attribution."
           assert s.count(old) == 1, s.count(old)
           p.write_text(s.replace(old, new))
           PY
@@ -51,18 +43,13 @@ jobs:
           from pathlib import Path
           p = Path('docs/interactive/dashboard.html')
           s = p.read_text()
-          old1 = '''      <strong>Headline performance:</strong> +144.5% over Jan 2024 to Jun 2026 (+44.2%/yr, Sharpe 1.20 +/- 0.64) vs +46.0% for holding BTC, paper-traded net of costs and funding.
-    </p>'''
-          new1 = '''      <strong>Headline performance:</strong> +144.5% over Jan 2024 to Jun 2026 (+44.2%/yr, Sharpe 1.20 +/- 0.64) vs +46.0% for holding BTC, paper-traded net of costs and funding. Every published figure is traceable in the <a href="../NUMBERS_LEDGER.html" style="color: var(--accent); text-decoration: none;">numbers ledger</a>.
-    </p>'''
-          old2 = '''        Weekly picks shown at signal-family level only.
-      </p>'''
-          new2 = '''        Weekly picks shown at signal-family level only; the <a href="../REDACTION_REPORT.html" style="color: var(--text-dim);">redaction report</a> explains what is intentionally withheld.
-      </p>'''
+          old1 = "      <strong>Headline performance:</strong> +144.5% over Jan 2024 to Jun 2026 (+44.2%/yr, Sharpe 1.20 +/- 0.64) vs +46.0% for holding BTC, paper-traded net of costs and funding.\n    </p>"
+          new1 = "      <strong>Headline performance:</strong> +144.5% over Jan 2024 to Jun 2026 (+44.2%/yr, Sharpe 1.20 +/- 0.64) vs +46.0% for holding BTC, paper-traded net of costs and funding. Every published figure is traceable in the <a href=\"../NUMBERS_LEDGER.html\" style=\"color: var(--accent); text-decoration: none;\">numbers ledger</a>.\n    </p>"
+          old2 = "        Weekly picks shown at signal-family level only.\n      </p>"
+          new2 = "        Weekly picks shown at signal-family level only; the <a href=\"../REDACTION_REPORT.html\" style=\"color: var(--text-dim);\">redaction report</a> explains what is intentionally withheld.\n      </p>"
           assert s.count(old1) == 1, s.count(old1)
           assert s.count(old2) == 1, s.count(old2)
-          s = s.replace(old1, new1).replace(old2, new2)
-          p.write_text(s)
+          p.write_text(s.replace(old1, new1).replace(old2, new2))
           PY
           git add docs/interactive/dashboard.html
           git commit -m "Link dashboard claims to provenance docs"
@@ -75,8 +62,8 @@ jobs:
           from pathlib import Path
           p = Path('docs/interactive/equity.html')
           s = p.read_text()
-          old = '''Educational only — not investment advice. · <a href="../">Project overview</a> · <a href="./dashboard.html">Full dashboard</a></div>'''
-          new = '''Educational only — not investment advice. · <a href="../">Project overview</a> · <a href="./dashboard.html">Full dashboard</a> · <a href="../NUMBERS_LEDGER.html">Numbers ledger</a></div>'''
+          old = "Educational only — not investment advice. · <a href=\"../\">Project overview</a> · <a href=\"./dashboard.html\">Full dashboard</a></div>"
+          new = "Educational only — not investment advice. · <a href=\"../\">Project overview</a> · <a href=\"./dashboard.html\">Full dashboard</a> · <a href=\"../NUMBERS_LEDGER.html\">Numbers ledger</a></div>"
           assert s.count(old) == 1, s.count(old)
           p.write_text(s.replace(old, new))
           PY
@@ -91,14 +78,8 @@ jobs:
           from pathlib import Path
           p = Path('docs/NUMBERS_LEDGER.md')
           s = p.read_text()
-          old = '''# Numbers ledger — ground truth for every published figure
-
-Every number in the case study (README.md) traces to one of three sources'''
-          new = '''# Numbers ledger — ground truth for every published figure
-
-Related: [Project overview](https://akzar1el.github.io/walk-forward-crypto/) · [OOS dashboard](https://akzar1el.github.io/walk-forward-crypto/interactive/dashboard.html) · [Redaction report](https://akzar1el.github.io/walk-forward-crypto/REDACTION_REPORT.html)
-
-Every number in the case study (README.md) traces to one of three sources'''
+          old = "# Numbers ledger — ground truth for every published figure\n\nEvery number in the case study (README.md) traces to one of three sources"
+          new = "# Numbers ledger — ground truth for every published figure\n\nRelated: [Project overview](https://akzar1el.github.io/walk-forward-crypto/) · [OOS dashboard](https://akzar1el.github.io/walk-forward-crypto/interactive/dashboard.html) · [Redaction report](https://akzar1el.github.io/walk-forward-crypto/REDACTION_REPORT.html)\n\nEvery number in the case study (README.md) traces to one of three sources"
           assert s.count(old) == 1, s.count(old)
           p.write_text(s.replace(old, new))
           PY
@@ -113,14 +94,8 @@ Every number in the case study (README.md) traces to one of three sources'''
           from pathlib import Path
           p = Path('docs/REDACTION_REPORT.md')
           s = p.read_text()
-          old = '''# Redaction report
-
-What the case study abstracts, what it keeps, and how this public'''
-          new = '''# Redaction report
-
-Related: [Project overview](https://akzar1el.github.io/walk-forward-crypto/) · [Numbers ledger](https://akzar1el.github.io/walk-forward-crypto/NUMBERS_LEDGER.html) · [OOS dashboard](https://akzar1el.github.io/walk-forward-crypto/interactive/dashboard.html)
-
-What the case study abstracts, what it keeps, and how this public'''
+          old = "# Redaction report\n\nWhat the case study abstracts, what it keeps, and how this public"
+          new = "# Redaction report\n\nRelated: [Project overview](https://akzar1el.github.io/walk-forward-crypto/) · [Numbers ledger](https://akzar1el.github.io/walk-forward-crypto/NUMBERS_LEDGER.html) · [OOS dashboard](https://akzar1el.github.io/walk-forward-crypto/interactive/dashboard.html)\n\nWhat the case study abstracts, what it keeps, and how this public"
           assert s.count(old) == 1, s.count(old)
           p.write_text(s.replace(old, new))
           PY
@@ -144,13 +119,7 @@ What the case study abstracts, what it keeps, and how this public'''
               text = Path(name).read_text()
               for needle in needles:
                   assert needle in text, (name, needle)
-          for target in [
-              'docs/index.html',
-              'docs/interactive/dashboard.html',
-              'docs/interactive/equity.html',
-              'docs/NUMBERS_LEDGER.md',
-              'docs/REDACTION_REPORT.md',
-          ]:
+          for target in ['docs/index.html', 'docs/interactive/dashboard.html', 'docs/interactive/equity.html', 'docs/NUMBERS_LEDGER.md', 'docs/REDACTION_REPORT.md']:
               assert Path(target).is_file(), target
           print('Internal link graph invariants passed')
           PY
