@@ -1,5 +1,7 @@
 # Redaction report
 
+Related: [Project overview](https://akzar1el.github.io/walk-forward-crypto/) · [Numbers ledger](https://akzar1el.github.io/walk-forward-crypto/NUMBERS_LEDGER.html) · [OOS dashboard](https://akzar1el.github.io/walk-forward-crypto/interactive/dashboard.html)
+
 What the case study abstracts, what it keeps, and how this public
 repository enforces the redaction.
 
