@@ -1,5 +1,7 @@
 # Numbers ledger — ground truth for every published figure
 
+Related: [Project overview](https://akzar1el.github.io/walk-forward-crypto/) · [OOS dashboard](https://akzar1el.github.io/walk-forward-crypto/interactive/dashboard.html) · [Redaction report](https://akzar1el.github.io/walk-forward-crypto/REDACTION_REPORT.html)
+
 Every number in the case study (README.md) traces to one of three sources
 in the private research repository:
 
