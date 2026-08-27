@@ -1,0 +1,91 @@
+name: One-time final audit fixes
+
+on:
+  push:
+    paths:
+      - .github/workflows/one-time-final-audit-fixes.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Normalize home links to canonical root
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          changes = {
+              Path('docs/index.html'): ('./index.html', './', 1),
+              Path('docs/interactive/dashboard.html'): ('../index.html', '../', 3),
+              Path('docs/interactive/equity.html'): ('../index.html', '../', 1),
+          }
+          for path, (old, new, expected) in changes.items():
+              text = path.read_text()
+              assert text.count(old) == expected, (path, text.count(old), expected)
+              path.write_text(text.replace(old, new))
+          PY
+          git add docs/index.html docs/interactive/dashboard.html docs/interactive/equity.html
+          git commit -m "Normalize home links to canonical root"
+          git push origin HEAD:main
+
+      - name: Label dashboard iframe
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('docs/interactive/dashboard.html')
+          text = path.read_text()
+          old = '<iframe src="./equity.html" style="width: 100%; height: 900px; border: none; background: transparent; border-radius: 4px;"></iframe>'
+          new = '<iframe src="./equity.html" title="Interactive out-of-sample equity, drawdown, and weekly signal-family charts" style="width: 100%; height: 900px; border: none; background: transparent; border-radius: 4px;"></iframe>'
+          assert text.count(old) == 1
+          path.write_text(text.replace(old, new))
+          PY
+          git add docs/interactive/dashboard.html
+          git commit -m "Label interactive dashboard iframe"
+          git push origin HEAD:main
+
+      - name: Clarify kill-switch comparison provenance
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('docs/index.html')
+          text = path.read_text()
+          old = 'Research showed drawdown brakes destroy returns: with a kill switch, 2025 returned -12.6% vs +41.0% without. Survival relies on config scoring instead.'
+          new = 'Research rejected drawdown brakes: on an earlier variant, a kill switch flipped 2025 from +41.0% to -12.6%. The shipped baseline therefore relies on configuration scoring and volatility sizing instead.'
+          assert text.count(old) == 1
+          path.write_text(text.replace(old, new))
+          PY
+          git add docs/index.html
+          git commit -m "Clarify kill-switch comparison provenance"
+          git push origin HEAD:main
+
+      - name: Verify final source invariants
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          index = Path('docs/index.html').read_text()
+          dash = Path('docs/interactive/dashboard.html').read_text()
+          equity = Path('docs/interactive/equity.html').read_text()
+          assert './index.html' not in index
+          assert '../index.html' not in dash
+          assert '../index.html' not in equity
+          assert 'title="Interactive out-of-sample equity, drawdown, and weekly signal-family charts"' in dash
+          assert 'on an earlier variant, a kill switch flipped 2025 from +41.0% to -12.6%' in index
+          assert 'Research showed drawdown brakes destroy returns' not in index
+          PY
+
+      - name: Remove helper workflow
+        run: |
+          git rm .github/workflows/one-time-final-audit-fixes.yml
+          git commit -m "Remove one-time final audit workflow"
+          git push origin HEAD:main
