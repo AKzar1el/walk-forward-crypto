@@ -1,0 +1,36 @@
+name: One-time README live-link fix
+
+on:
+  push:
+    paths:
+      - .github/workflows/one-time-readme-live-link-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fix stale GitHub Pages wording
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('README.md')
+          s = p.read_text()
+          old = 'Interactive version (hover, zoom, mobile) — view it live once GitHub Pages\nis enabled: **https://akzar1el.github.io/walk-forward-crypto/interactive/equity.html**'
+          new = 'Interactive version (hover, zoom, mobile):\n**https://akzar1el.github.io/walk-forward-crypto/interactive/equity.html**'
+          assert s.count(old) == 1
+          p.write_text(s.replace(old, new))
+          PY
+      - name: Commit fix and remove helper
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/one-time-readme-live-link-fix.yml
+          git add README.md
+          git commit -m "Fix stale GitHub Pages wording in README"
+          git push origin HEAD:main
