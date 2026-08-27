@@ -92,8 +92,8 @@ Per-year frozen replays (selection restarted each Jan 1, settings frozen):
 ![Weekly winner by family](docs/assets/weekly_winner_ribbon.png)
 ![Rolling Sharpe](docs/assets/rolling_sharpe.png)
 
-Interactive version (hover, zoom, mobile) — view it live once GitHub Pages
-is enabled: **https://akzar1el.github.io/walk-forward-crypto/interactive/equity.html**
+Interactive version (hover, zoom, mobile):
+**https://akzar1el.github.io/walk-forward-crypto/interactive/equity.html**
 (source: [docs/interactive/equity.html](docs/interactive/equity.html)).
 
 > ### What these numbers don't prove
